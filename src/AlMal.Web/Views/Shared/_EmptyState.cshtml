@@ -1,0 +1,39 @@
+@*
+    Empty State Partial
+
+    Usage: @await Html.PartialAsync("_EmptyState", null, new ViewDataDictionary(ViewData) {
+        { "EmptyIcon", "bi-inbox" },                     // Bootstrap icon class (optional)
+        { "EmptyTitle", "لا توجد بيانات" },               // Title text (optional)
+        { "EmptyMessage", "لم يتم العثور على نتائج" },    // Description text (optional)
+        { "EmptyActionUrl", "/some/url" },                // Action button URL (optional)
+        { "EmptyActionText", "إضافة جديد" }               // Action button text (optional)
+    })
+*@
+
+@{
+    var icon = ViewData["EmptyIcon"]?.ToString() ?? "bi-inbox";
+    var title = ViewData["EmptyTitle"]?.ToString() ?? "لا توجد بيانات";
+    var message = ViewData["EmptyMessage"]?.ToString();
+    var actionUrl = ViewData["EmptyActionUrl"]?.ToString();
+    var actionText = ViewData["EmptyActionText"]?.ToString();
+}
+
+<div class="empty-state">
+    <div class="empty-state-icon">
+        <i class="bi @icon"></i>
+    </div>
+
+    <div class="empty-state-title">@title</div>
+
+    @if (!string.IsNullOrEmpty(message))
+    {
+        <div class="empty-state-message">@message</div>
+    }
+
+    @if (!string.IsNullOrEmpty(actionUrl) && !string.IsNullOrEmpty(actionText))
+    {
+        <div class="empty-state-action">
+            <a href="@actionUrl" class="btn btn-primary">@actionText</a>
+        </div>
+    }
+</div>

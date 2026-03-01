@@ -1,0 +1,34 @@
+@* Mobile Bottom Navigation Bar - visible only on small screens *@
+<nav class="bottom-nav d-md-none" aria-label="التنقل السفلي">
+    <div class="d-flex justify-content-around align-items-center h-100">
+        <!-- Market -->
+        <a href="/" class="bottom-nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Home" ? "active" : "")">
+            <i class="bi bi-graph-up-arrow"></i>
+            <span>السوق</span>
+        </a>
+
+        <!-- News -->
+        <a href="/News" class="bottom-nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "News" ? "active" : "")">
+            <i class="bi bi-newspaper"></i>
+            <span>الأخبار</span>
+        </a>
+
+        <!-- Community -->
+        <a href="/Community" class="bottom-nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Community" ? "active" : "")">
+            <i class="bi bi-people"></i>
+            <span>المجتمع</span>
+        </a>
+
+        <!-- Academy -->
+        <a href="/Academy" class="bottom-nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Academy" ? "active" : "")">
+            <i class="bi bi-book"></i>
+            <span>الأكاديمية</span>
+        </a>
+
+        <!-- Profile -->
+        <a href="/Account/Login" class="bottom-nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Account" ? "active" : "")">
+            <i class="bi bi-person"></i>
+            <span>حسابي</span>
+        </a>
+    </div>
+</nav>
