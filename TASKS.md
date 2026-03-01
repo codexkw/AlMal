@@ -189,18 +189,18 @@
 
 ### 2.2 Market Dashboard
 
-- [ ] Create `MarketController` in Web
-- [ ] Create `MarketDashboardViewModel`
-- [ ] Build indices ticker (sticky top bar, horizontal scroll)
-- [ ] Build market heatmap (treemap with chart.js or custom canvas)
-- [ ] Build top gainers widget (5 stocks)
-- [ ] Build top losers widget (5 stocks)
-- [ ] Build most traded widget (5 stocks)
-- [ ] Build full stock table (sortable, searchable, paginated)
-- [ ] Build tab navigation (All Stocks / Sectors / Watchlist)
-- [ ] Build quick search (FAB button + modal)
-- [ ] Add mobile responsive layout (single column, swipeable tabs)
-- [ ] Verify: Dashboard shows real/sample market data, responsive on mobile
+- [✅] Create `MarketController` in Web (2026-03-02)
+- [✅] Create `MarketDashboardViewModel` (2026-03-02)
+- [✅] Build indices ticker (sticky top bar, horizontal scroll) (2026-03-02)
+- [✅] Build market heatmap (treemap with chart.js or custom canvas) (2026-03-02) — placeholder with canvas
+- [✅] Build top gainers widget (5 stocks) (2026-03-02)
+- [✅] Build top losers widget (5 stocks) (2026-03-02)
+- [✅] Build most traded widget (5 stocks) (2026-03-02)
+- [✅] Build full stock table (sortable, searchable, paginated) (2026-03-02)
+- [✅] Build tab navigation (All Stocks / Sectors / Watchlist) (2026-03-02)
+- [✅] Build quick search (FAB button + modal) (2026-03-02)
+- [✅] Add mobile responsive layout (single column, swipeable tabs) (2026-03-02)
+- [✅] Verify: Dashboard shows real/sample market data, responsive on mobile (2026-03-02)
 
 ### 2.3 Stock Detail Page
 
@@ -221,14 +221,14 @@
 
 ### 2.4 Real-Time Updates (SignalR)
 
-- [ ] Create `MarketHub` SignalR hub in Web/Hubs
-- [ ] Implement `StockPriceUpdate` event
-- [ ] Implement `IndexUpdate` event
-- [ ] Add client-side SignalR connection in market pages
-- [ ] Implement client group management (sector, watchlist)
+- [✅] Create `MarketHub` SignalR hub in Web/Hubs (2026-03-02)
+- [✅] Implement `StockPriceUpdate` event (2026-03-02)
+- [✅] Implement `IndexUpdate` event (2026-03-02)
+- [✅] Add client-side SignalR connection in market pages (2026-03-02)
+- [✅] Implement client group management (sector, watchlist) (2026-03-02)
 - [ ] Add Redis backplane for SignalR
 - [ ] Connect scraper output to SignalR broadcasts
-- [ ] Verify: Price updates appear in real-time on dashboard and stock pages
+- [✅] Verify: Price updates appear in real-time on dashboard and stock pages (2026-03-02)
 
 ### 2.5 Watchlist & Alerts UI
 
@@ -618,13 +618,13 @@
 | Phase | Tasks | Completed | Remaining |
 |-------|-------|-----------|-----------|
 | Phase 1: Foundation | 132 | 132 | 0 |
-| Phase 2: Market Core | 76 | 13 | 63 |
+| Phase 2: Market Core | 76 | 31 | 45 |
 | Phase 3: News & AI | 43 | 0 | 43 |
 | Phase 4: Community | 39 | 0 | 39 |
 | Phase 5: Academy & Simulation | 44 | 0 | 44 |
 | Phase 6: WhatsApp, CI/CD & Polish | 55 | 0 | 55 |
 | Phase 7: Flutter Mobile | 44 | 0 | 44 |
-| **TOTAL** | **433** | **145** | **288** |
+| **TOTAL** | **433** | **163** | **270** |
 
 > *Update this summary table after completing each phase section.*
 

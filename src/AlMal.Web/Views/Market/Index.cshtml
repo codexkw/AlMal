@@ -1,0 +1,970 @@
+@model AlMal.Web.ViewModels.Market.MarketDashboardViewModel
+@{
+    ViewData["Title"] = "السوق";
+}
+
+<!-- ======================================================================
+     1. INDICES TICKER — Sticky horizontal scroll bar
+     ====================================================================== -->
+<section class="index-ticker bg-white border-bottom sticky-top shadow-sm py-2"
+         id="indicesTicker">
+    <div class="container-fluid">
+        <div class="d-flex flex-nowrap overflow-auto gap-4 align-items-center px-2"
+             style="scrollbar-width: thin;">
+            @if (Model.Indices != null && Model.Indices.Any())
+            {
+                @foreach (var index in Model.Indices)
+                {
+                    var changeClass = index.Change >= 0 ? "text-success" : "text-danger";
+                    var changeIcon = index.Change >= 0 ? "bi-caret-up-fill" : "bi-caret-down-fill";
+                    <div class="d-flex align-items-center gap-2 flex-shrink-0 pe-4 border-end">
+                        <span class="fw-semibold text-muted small">@index.NameAr</span>
+                        <span class="fw-bold">@index.Value.ToString("N2")</span>
+                        <span class="@changeClass small fw-semibold">
+                            <i class="bi @changeIcon"></i>
+                            @index.Change?.ToString("N2")
+                            (@index.ChangePercent?.ToString("N2")%)
+                        </span>
+                    </div>
+                }
+            }
+            else
+            {
+                <div class="text-muted small py-1">لا توجد بيانات للمؤشرات</div>
+            }
+        </div>
+    </div>
+</section>
+
+<!-- ======================================================================
+     2. TAB NAVIGATION — جميع الأسهم | القطاعات | قائمة المتابعة
+     ====================================================================== -->
+<section class="tab-navigation bg-white border-bottom" x-data="{ activeTab: 'all' }">
+    <div class="container-fluid">
+        <ul class="nav nav-tabs border-0 pt-2 px-2 gap-1" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link px-4 py-2 fw-semibold"
+                        :class="activeTab === 'all' ? 'active' : ''"
+                        @@click="activeTab = 'all'"
+                        type="button"
+                        role="tab"
+                        aria-selected="true">
+                    <i class="bi bi-grid-3x3-gap-fill me-1"></i>
+                    جميع الأسهم
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link px-4 py-2 fw-semibold"
+                        :class="activeTab === 'sectors' ? 'active' : ''"
+                        @@click="activeTab = 'sectors'"
+                        type="button"
+                        role="tab">
+                    <i class="bi bi-pie-chart-fill me-1"></i>
+                    القطاعات
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link px-4 py-2 fw-semibold"
+                        :class="activeTab === 'watchlist' ? 'active' : ''"
+                        @@click="activeTab = 'watchlist'"
+                        type="button"
+                        role="tab">
+                    <i class="bi bi-star-fill me-1"></i>
+                    قائمة المتابعة
+                </button>
+            </li>
+        </ul>
+    </div>
+
+    <!-- ======================================================================
+         3. MAIN CONTENT AREA — Desktop: 60/40 split, Mobile: stacked
+         ====================================================================== -->
+    <div class="container-fluid py-3">
+
+        <!-- Tab: All Stocks -->
+        <div x-show="activeTab === 'all'" x-transition>
+            <div class="row g-3">
+
+                <!-- 3a. Main Column (Heatmap + Stock Table) -->
+                <div class="col-lg-8 col-xl-8">
+
+                    <!-- Heatmap Placeholder -->
+                    <div class="card border-0 shadow-sm mb-3">
+                        <div class="card-header bg-white border-bottom d-flex align-items-center justify-content-between py-3">
+                            <h5 class="mb-0 fw-bold" style="color: #4F0E5E;">
+                                <i class="bi bi-grid-fill me-2"></i>
+                                خريطة السوق الحرارية
+                            </h5>
+                            <span class="badge bg-light text-muted small">Chart.js Treemap</span>
+                        </div>
+                        <div class="card-body d-flex align-items-center justify-content-center"
+                             style="min-height: 320px; background: linear-gradient(135deg, #f8f6fa 0%, #fdf2ef 100%);">
+                            <div id="heatmapContainer" class="w-100 h-100 position-relative">
+                                <canvas id="marketHeatmap" class="w-100"></canvas>
+                                <div id="heatmapPlaceholder" class="text-center py-5">
+                                    <i class="bi bi-grid-fill display-1 text-muted opacity-25"></i>
+                                    <p class="text-muted mt-3 mb-0">سيتم تحميل خريطة السوق الحرارية هنا</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3b. Sidebar Column (Gainers / Losers / Most Traded) -->
+                <div class="col-lg-4 col-xl-4">
+
+                    <!-- Top Gainers: الأكثر ارتفاعاً -->
+                    <div class="card border-0 shadow-sm mb-3">
+                        <div class="card-header bg-white border-bottom py-2">
+                            <h6 class="mb-0 fw-bold text-success">
+                                <i class="bi bi-graph-up-arrow me-1"></i>
+                                الأكثر ارتفاعاً
+                            </h6>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="list-group list-group-flush"
+                                 id="topGainersList">
+                                @if (Model.TopGainers != null && Model.TopGainers.Any())
+                                {
+                                    @foreach (var stock in Model.TopGainers.Take(5))
+                                    {
+                                        <a asp-controller="Stock" asp-action="Details" asp-route-symbol="@stock.Symbol"
+                                           class="list-group-item list-group-item-action d-flex align-items-center justify-content-between py-2 px-3"
+                                           data-symbol="@stock.Symbol">
+                                            <div>
+                                                <span class="fw-bold small" style="color: #4F0E5E;">@stock.Symbol</span>
+                                                <br />
+                                                <span class="text-muted" style="font-size: 0.75rem;">@stock.NameAr</span>
+                                            </div>
+                                            <div class="text-end">
+                                                <span class="fw-semibold small"
+                                                      data-price="@stock.Symbol">@stock.LastPrice?.ToString("N3")</span>
+                                                <br />
+                                                <span class="text-success fw-bold small"
+                                                      data-change-percent="@stock.Symbol">
+                                                    <i class="bi bi-caret-up-fill"></i>
+                                                    @stock.DayChangePercent?.ToString("N2")%
+                                                </span>
+                                            </div>
+                                        </a>
+                                    }
+                                }
+                                else
+                                {
+                                    <div class="text-center text-muted small py-3">لا توجد بيانات</div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Top Losers: الأكثر انخفاضاً -->
+                    <div class="card border-0 shadow-sm mb-3">
+                        <div class="card-header bg-white border-bottom py-2">
+                            <h6 class="mb-0 fw-bold text-danger">
+                                <i class="bi bi-graph-down-arrow me-1"></i>
+                                الأكثر انخفاضاً
+                            </h6>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="list-group list-group-flush"
+                                 id="topLosersList">
+                                @if (Model.TopLosers != null && Model.TopLosers.Any())
+                                {
+                                    @foreach (var stock in Model.TopLosers.Take(5))
+                                    {
+                                        <a asp-controller="Stock" asp-action="Details" asp-route-symbol="@stock.Symbol"
+                                           class="list-group-item list-group-item-action d-flex align-items-center justify-content-between py-2 px-3"
+                                           data-symbol="@stock.Symbol">
+                                            <div>
+                                                <span class="fw-bold small" style="color: #4F0E5E;">@stock.Symbol</span>
+                                                <br />
+                                                <span class="text-muted" style="font-size: 0.75rem;">@stock.NameAr</span>
+                                            </div>
+                                            <div class="text-end">
+                                                <span class="fw-semibold small"
+                                                      data-price="@stock.Symbol">@stock.LastPrice?.ToString("N3")</span>
+                                                <br />
+                                                <span class="text-danger fw-bold small"
+                                                      data-change-percent="@stock.Symbol">
+                                                    <i class="bi bi-caret-down-fill"></i>
+                                                    @stock.DayChangePercent?.ToString("N2")%
+                                                </span>
+                                            </div>
+                                        </a>
+                                    }
+                                }
+                                else
+                                {
+                                    <div class="text-center text-muted small py-3">لا توجد بيانات</div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Most Traded: الأكثر تداولاً -->
+                    <div class="card border-0 shadow-sm mb-3">
+                        <div class="card-header bg-white border-bottom py-2">
+                            <h6 class="mb-0 fw-bold" style="color: #FC4A04;">
+                                <i class="bi bi-bar-chart-fill me-1"></i>
+                                الأكثر تداولاً
+                            </h6>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="list-group list-group-flush"
+                                 id="mostTradedList">
+                                @if (Model.MostTraded != null && Model.MostTraded.Any())
+                                {
+                                    @foreach (var stock in Model.MostTraded.Take(5))
+                                    {
+                                        var tradeChangeClass = stock.DayChangePercent >= 0 ? "text-success" : "text-danger";
+                                        var tradeChangeIcon = stock.DayChangePercent >= 0 ? "bi-caret-up-fill" : "bi-caret-down-fill";
+                                        <a asp-controller="Stock" asp-action="Details" asp-route-symbol="@stock.Symbol"
+                                           class="list-group-item list-group-item-action d-flex align-items-center justify-content-between py-2 px-3"
+                                           data-symbol="@stock.Symbol">
+                                            <div>
+                                                <span class="fw-bold small" style="color: #4F0E5E;">@stock.Symbol</span>
+                                                <br />
+                                                <span class="text-muted" style="font-size: 0.75rem;">@stock.NameAr</span>
+                                            </div>
+                                            <div class="text-end">
+                                                <span class="fw-semibold small"
+                                                      data-price="@stock.Symbol">@stock.LastPrice?.ToString("N3")</span>
+                                                <br />
+                                                <span class="@tradeChangeClass fw-bold small"
+                                                      data-change-percent="@stock.Symbol">
+                                                    <i class="bi @tradeChangeIcon"></i>
+                                                    @stock.DayChangePercent?.ToString("N2")%
+                                                </span>
+                                            </div>
+                                        </a>
+                                    }
+                                }
+                                else
+                                {
+                                    <div class="text-center text-muted small py-3">لا توجد بيانات</div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- ======================================================================
+                 4. FULL STOCK TABLE — Sortable, searchable, paginated
+                 ====================================================================== -->
+            <div class="card border-0 shadow-sm mt-2">
+                <div class="card-header bg-white border-bottom py-3">
+                    <div class="row align-items-center g-2">
+                        <div class="col-md-6">
+                            <h5 class="mb-0 fw-bold" style="color: #4F0E5E;">
+                                <i class="bi bi-table me-2"></i>
+                                جميع الأسهم
+                            </h5>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0">
+                                    <i class="bi bi-search text-muted"></i>
+                                </span>
+                                <input type="text"
+                                       id="stockSearchInput"
+                                       class="form-control border-start-0 bg-light"
+                                       placeholder="بحث بالرمز أو اسم الشركة..."
+                                       hx-get="@Url.Action("SearchStocks", "Market")"
+                                       hx-trigger="keyup changed delay:300ms"
+                                       hx-target="#stockTableBody"
+                                       hx-include="this"
+                                       name="query"
+                                       autocomplete="off" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0" id="stockTable">
+                            <thead class="table-light">
+                                <tr>
+                                    <th scope="col" class="px-3 py-3 cursor-pointer"
+                                        hx-get="@Url.Action("SortStocks", "Market")"
+                                        hx-vals='{"sortBy": "symbol"}'
+                                        hx-target="#stockTableBody"
+                                        style="cursor: pointer;">
+                                        الرمز
+                                        <i class="bi bi-chevron-expand small text-muted"></i>
+                                    </th>
+                                    <th scope="col" class="px-3 py-3 cursor-pointer"
+                                        hx-get="@Url.Action("SortStocks", "Market")"
+                                        hx-vals='{"sortBy": "company"}'
+                                        hx-target="#stockTableBody"
+                                        style="cursor: pointer;">
+                                        الشركة
+                                        <i class="bi bi-chevron-expand small text-muted"></i>
+                                    </th>
+                                    <th scope="col" class="px-3 py-3 cursor-pointer"
+                                        hx-get="@Url.Action("SortStocks", "Market")"
+                                        hx-vals='{"sortBy": "price"}'
+                                        hx-target="#stockTableBody"
+                                        style="cursor: pointer;">
+                                        السعر
+                                        <i class="bi bi-chevron-expand small text-muted"></i>
+                                    </th>
+                                    <th scope="col" class="px-3 py-3 cursor-pointer"
+                                        hx-get="@Url.Action("SortStocks", "Market")"
+                                        hx-vals='{"sortBy": "change"}'
+                                        hx-target="#stockTableBody"
+                                        style="cursor: pointer;">
+                                        التغيير
+                                        <i class="bi bi-chevron-expand small text-muted"></i>
+                                    </th>
+                                    <th scope="col" class="px-3 py-3 cursor-pointer"
+                                        hx-get="@Url.Action("SortStocks", "Market")"
+                                        hx-vals='{"sortBy": "changePercent"}'
+                                        hx-target="#stockTableBody"
+                                        style="cursor: pointer;">
+                                        التغيير%
+                                        <i class="bi bi-chevron-expand small text-muted"></i>
+                                    </th>
+                                    <th scope="col" class="px-3 py-3 cursor-pointer"
+                                        hx-get="@Url.Action("SortStocks", "Market")"
+                                        hx-vals='{"sortBy": "sector"}'
+                                        hx-target="#stockTableBody"
+                                        style="cursor: pointer;">
+                                        القطاع
+                                        <i class="bi bi-chevron-expand small text-muted"></i>
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody id="stockTableBody">
+                                @if (Model.AllStocks != null && Model.AllStocks.Any())
+                                {
+                                    @foreach (var stock in Model.AllStocks)
+                                    {
+                                        var rowChangeClass = stock.DayChangePercent >= 0 ? "text-success" : "text-danger";
+                                        var rowChangeIcon = stock.DayChangePercent >= 0 ? "bi-caret-up-fill" : "bi-caret-down-fill";
+                                        <tr class="stock-row" data-symbol="@stock.Symbol">
+                                            <td class="px-3 py-2">
+                                                <a asp-controller="Stock" asp-action="Details"
+                                                   asp-route-symbol="@stock.Symbol"
+                                                   class="fw-bold text-decoration-none"
+                                                   style="color: #4F0E5E;">
+                                                    @stock.Symbol
+                                                </a>
+                                            </td>
+                                            <td class="px-3 py-2">
+                                                <span class="text-dark">@stock.NameAr</span>
+                                            </td>
+                                            <td class="px-3 py-2">
+                                                <span class="fw-semibold"
+                                                      data-price="@stock.Symbol">
+                                                    @stock.LastPrice?.ToString("N3")
+                                                </span>
+                                            </td>
+                                            <td class="px-3 py-2">
+                                                <span class="@rowChangeClass fw-semibold"
+                                                      data-change="@stock.Symbol">
+                                                    <i class="bi @rowChangeIcon"></i>
+                                                    @stock.DayChange?.ToString("N3")
+                                                </span>
+                                            </td>
+                                            <td class="px-3 py-2">
+                                                <span class="@rowChangeClass fw-bold"
+                                                      data-change-percent="@stock.Symbol">
+                                                    @stock.DayChangePercent?.ToString("N2")%
+                                                </span>
+                                            </td>
+                                            <td class="px-3 py-2">
+                                                <span class="badge bg-light text-dark fw-normal">
+                                                    @stock.SectorNameAr
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                                else
+                                {
+                                    <tr>
+                                        <td colspan="6" class="text-center text-muted py-5">
+                                            <i class="bi bi-inbox display-4 d-block mb-2 opacity-25"></i>
+                                            لا توجد بيانات
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Pagination -->
+                @if (Model.TotalPages > 1)
+                {
+                    <div class="card-footer bg-white border-top py-3">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <span class="text-muted small">
+                                الصفحة @Model.CurrentPage من @Model.TotalPages
+                            </span>
+                            <nav aria-label="Stock table pagination">
+                                <ul class="pagination pagination-sm mb-0 gap-1">
+                                    <li class="page-item @(Model.CurrentPage <= 1 ? "disabled" : "")">
+                                        <a class="page-link rounded"
+                                           hx-get="@Url.Action("Index", "Market", new { page = Model.CurrentPage - 1 })"
+                                           hx-target="#stockTableBody"
+                                           hx-push-url="true"
+                                           href="#">
+                                            <i class="bi bi-chevron-right"></i>
+                                            السابق
+                                        </a>
+                                    </li>
+                                    @for (int i = 1; i <= Model.TotalPages; i++)
+                                    {
+                                        var pageNum = i;
+                                        <li class="page-item @(pageNum == Model.CurrentPage ? "active" : "")">
+                                            <a class="page-link rounded"
+                                               hx-get="@Url.Action("Index", "Market", new { page = pageNum })"
+                                               hx-target="#stockTableBody"
+                                               hx-push-url="true"
+                                               href="#">
+                                                @pageNum
+                                            </a>
+                                        </li>
+                                    }
+                                    <li class="page-item @(Model.CurrentPage >= Model.TotalPages ? "disabled" : "")">
+                                        <a class="page-link rounded"
+                                           hx-get="@Url.Action("Index", "Market", new { page = Model.CurrentPage + 1 })"
+                                           hx-target="#stockTableBody"
+                                           hx-push-url="true"
+                                           href="#">
+                                            التالي
+                                            <i class="bi bi-chevron-left"></i>
+                                        </a>
+                                    </li>
+                                </ul>
+                            </nav>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Tab: Sectors -->
+        <div x-show="activeTab === 'sectors'" x-transition x-cloak>
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-bottom py-3">
+                    <h5 class="mb-0 fw-bold" style="color: #4F0E5E;">
+                        <i class="bi bi-pie-chart-fill me-2"></i>
+                        القطاعات
+                    </h5>
+                </div>
+                <div class="card-body"
+                     id="sectorsContent"
+                     hx-get="@Url.Action("Sectors", "Market")"
+                     hx-trigger="intersect once"
+                     hx-swap="innerHTML">
+                    <div class="text-center py-5">
+                        <div class="spinner-border text-secondary" role="status" style="color: #4F0E5E !important;">
+                            <span class="visually-hidden">جاري التحميل...</span>
+                        </div>
+                        <p class="text-muted mt-2 mb-0">جاري تحميل القطاعات...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab: Watchlist -->
+        <div x-show="activeTab === 'watchlist'" x-transition x-cloak>
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-bottom py-3 d-flex align-items-center justify-content-between">
+                    <h5 class="mb-0 fw-bold" style="color: #4F0E5E;">
+                        <i class="bi bi-star-fill me-2"></i>
+                        قائمة المتابعة
+                    </h5>
+                    <button class="btn btn-sm text-white"
+                            style="background-color: #FC4A04;"
+                            data-bs-toggle="modal"
+                            data-bs-target="#addToWatchlistModal">
+                        <i class="bi bi-plus-lg me-1"></i>
+                        إضافة سهم
+                    </button>
+                </div>
+                <div class="card-body"
+                     id="watchlistContent"
+                     hx-get="@Url.Action("Watchlist", "Market")"
+                     hx-trigger="intersect once"
+                     hx-swap="innerHTML">
+                    <div class="text-center py-5">
+                        <div class="spinner-border text-secondary" role="status" style="color: #4F0E5E !important;">
+                            <span class="visually-hidden">جاري التحميل...</span>
+                        </div>
+                        <p class="text-muted mt-2 mb-0">جاري تحميل قائمة المتابعة...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</section>
+
+<!-- ======================================================================
+     5. QUICK SEARCH FAB — Floating button + modal
+     ====================================================================== -->
+<div x-data="{ searchOpen: false }" class="d-lg-none">
+
+    <!-- FAB Button -->
+    <button class="btn btn-lg rounded-circle shadow-lg position-fixed text-white d-flex align-items-center justify-content-center"
+            style="bottom: 1.5rem; left: 1.5rem; width: 56px; height: 56px; background-color: #FC4A04; z-index: 1050;"
+            @@click="searchOpen = true"
+            aria-label="بحث سريع">
+        <i class="bi bi-search fs-5"></i>
+    </button>
+
+    <!-- Search Modal Overlay -->
+    <div x-show="searchOpen"
+         x-transition:enter="transition ease-out duration-200"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-150"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"
+         class="position-fixed top-0 start-0 w-100 h-100 d-flex flex-column"
+         style="z-index: 1060; background: rgba(0,0,0,0.5);"
+         @@click.self="searchOpen = false"
+         x-cloak>
+
+        <div class="bg-white w-100 shadow-lg" @@click.stop>
+            <div class="container-fluid py-3">
+                <div class="d-flex align-items-center gap-2">
+                    <button class="btn btn-link text-dark p-0"
+                            @@click="searchOpen = false">
+                        <i class="bi bi-arrow-right fs-4"></i>
+                    </button>
+                    <div class="input-group flex-grow-1">
+                        <span class="input-group-text bg-light border-end-0">
+                            <i class="bi bi-search text-muted"></i>
+                        </span>
+                        <input type="text"
+                               id="quickSearchInput"
+                               class="form-control border-start-0 bg-light"
+                               placeholder="بحث سريع عن سهم..."
+                               autocomplete="off"
+                               x-ref="quickSearchField"
+                               x-init="$watch('searchOpen', value => { if(value) setTimeout(() => $refs.quickSearchField.focus(), 100) })" />
+                    </div>
+                </div>
+                <!-- Quick Search Results -->
+                <div id="quickSearchResults" class="mt-2 overflow-auto" style="max-height: 60vh;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Desktop Quick Search (in header area, visible on lg+) -->
+<div class="d-none d-lg-block">
+    <div class="modal fade" id="desktopSearchModal" tabindex="-1" aria-labelledby="desktopSearchLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header border-bottom py-3">
+                    <h5 class="modal-title fw-bold" id="desktopSearchLabel" style="color: #4F0E5E;">
+                        <i class="bi bi-search me-2"></i>
+                        بحث سريع
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="text"
+                           id="desktopQuickSearchInput"
+                           class="form-control form-control-lg bg-light"
+                           placeholder="ابحث بالرمز أو اسم الشركة..."
+                           autocomplete="off" />
+                    <div id="desktopQuickSearchResults" class="mt-3 overflow-auto" style="max-height: 400px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ======================================================================
+     STYLES
+     ====================================================================== -->
+<style>
+    /* Brand color overrides */
+    .nav-tabs .nav-link.active {
+        color: #4F0E5E;
+        border-bottom: 3px solid #4F0E5E;
+        background: transparent;
+        border-top: none;
+        border-left: none;
+        border-right: none;
+    }
+
+    .nav-tabs .nav-link {
+        color: #6c757d;
+        border: none;
+        border-bottom: 3px solid transparent;
+        transition: all 0.2s ease;
+    }
+
+    .nav-tabs .nav-link:hover {
+        color: #4F0E5E;
+        border-bottom-color: rgba(79, 14, 94, 0.3);
+    }
+
+    .page-item.active .page-link {
+        background-color: #4F0E5E;
+        border-color: #4F0E5E;
+    }
+
+    .page-link {
+        color: #4F0E5E;
+    }
+
+    .page-link:hover {
+        color: #3a0a46;
+        background-color: #f8f6fa;
+    }
+
+    /* Index ticker smooth scroll */
+    .index-ticker .d-flex {
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .index-ticker .d-flex::-webkit-scrollbar {
+        height: 3px;
+    }
+
+    .index-ticker .d-flex::-webkit-scrollbar-thumb {
+        background-color: rgba(79, 14, 94, 0.2);
+        border-radius: 3px;
+    }
+
+    /* Stock row hover */
+    .stock-row {
+        transition: background-color 0.15s ease;
+    }
+
+    .stock-row:hover {
+        background-color: #f8f6fa !important;
+    }
+
+    /* Price flash animations */
+    .price-flash-up {
+        animation: flashGreen 0.6s ease-out;
+    }
+
+    .price-flash-down {
+        animation: flashRed 0.6s ease-out;
+    }
+
+    @@keyframes flashGreen {
+        0% { background-color: rgba(25, 135, 84, 0.2); }
+        100% { background-color: transparent; }
+    }
+
+    @@keyframes flashRed {
+        0% { background-color: rgba(220, 53, 69, 0.2); }
+        100% { background-color: transparent; }
+    }
+
+    /* Sidebar widget hover */
+    .list-group-item-action:hover {
+        background-color: #f8f6fa;
+    }
+
+    /* Mobile responsive adjustments */
+    @@media (max-width: 767.98px) {
+        .index-ticker {
+            position: sticky;
+            top: 0;
+            z-index: 1020;
+        }
+
+        .nav-tabs {
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .nav-tabs .nav-link {
+            white-space: nowrap;
+            padding: 0.5rem 1rem;
+            font-size: 0.9rem;
+        }
+    }
+
+    /* x-cloak hides Alpine elements before init */
+    [x-cloak] {
+        display: none !important;
+    }
+</style>
+
+<!-- ======================================================================
+     6. SCRIPTS SECTION — SignalR, Quick Search, Price Updates
+     ====================================================================== -->
+@section Scripts {
+    <script>
+        // ----------------------------------------------------------------
+        // SignalR Market Hub Connection
+        // ----------------------------------------------------------------
+        (function () {
+            'use strict';
+
+            const connection = new signalR.HubConnectionBuilder()
+                .withUrl('/hubs/market')
+                .withAutomaticReconnect([0, 2000, 5000, 10000, 30000])
+                .configureLogging(signalR.LogLevel.Warning)
+                .build();
+
+            // Connection state management
+            connection.onreconnecting(function (error) {
+                console.warn('SignalR: Reconnecting...', error);
+                showConnectionStatus('جاري إعادة الاتصال...', 'warning');
+            });
+
+            connection.onreconnected(function (connectionId) {
+                console.info('SignalR: Reconnected.', connectionId);
+                showConnectionStatus('تم إعادة الاتصال', 'success');
+                hideConnectionStatus(2000);
+            });
+
+            connection.onclose(function (error) {
+                console.error('SignalR: Connection closed.', error);
+                showConnectionStatus('انقطع الاتصال. جاري المحاولة...', 'danger');
+                setTimeout(startConnection, 5000);
+            });
+
+            // ----------------------------------------------------------------
+            // Price Update Handler
+            // ----------------------------------------------------------------
+            connection.on('ReceivePriceUpdate', function (update) {
+                if (!update || !update.symbol) return;
+
+                var symbol = update.symbol;
+                var price = parseFloat(update.price);
+                var change = parseFloat(update.change);
+                var changePercent = parseFloat(update.changePercent);
+
+                var isPositive = changePercent >= 0;
+                var changeClass = isPositive ? 'text-success' : 'text-danger';
+                var changeIcon = isPositive ? 'bi-caret-up-fill' : 'bi-caret-down-fill';
+                var flashClass = isPositive ? 'price-flash-up' : 'price-flash-down';
+
+                // Update all price elements for this symbol
+                var priceEls = document.querySelectorAll('[data-price="' + symbol + '"]');
+                priceEls.forEach(function (el) {
+                    var oldPrice = parseFloat(el.textContent);
+                    el.textContent = price.toFixed(2);
+
+                    // Flash animation
+                    if (oldPrice !== price) {
+                        el.classList.remove('price-flash-up', 'price-flash-down');
+                        void el.offsetWidth; // Force reflow
+                        el.classList.add(flashClass);
+                    }
+                });
+
+                // Update change elements
+                var changeEls = document.querySelectorAll('[data-change="' + symbol + '"]');
+                changeEls.forEach(function (el) {
+                    el.className = changeClass + ' fw-semibold';
+                    el.innerHTML = '<i class="bi ' + changeIcon + '"></i> ' + change.toFixed(2);
+                });
+
+                // Update change percent elements
+                var changePctEls = document.querySelectorAll('[data-change-percent="' + symbol + '"]');
+                changePctEls.forEach(function (el) {
+                    el.className = changeClass + ' fw-bold small';
+                    el.innerHTML = '<i class="bi ' + changeIcon + '"></i> ' + changePercent.toFixed(2) + '%';
+                });
+            });
+
+            // ----------------------------------------------------------------
+            // Index Update Handler
+            // ----------------------------------------------------------------
+            connection.on('ReceiveIndexUpdate', function (update) {
+                if (!update || !update.name) return;
+
+                var ticker = document.getElementById('indicesTicker');
+                if (!ticker) return;
+
+                // Find and update the matching index in the ticker
+                var items = ticker.querySelectorAll('.d-flex > div');
+                items.forEach(function (item) {
+                    var nameEl = item.querySelector('.fw-semibold.text-muted');
+                    if (nameEl && nameEl.textContent.trim() === update.name) {
+                        var valueEl = item.querySelector('.fw-bold:not(.small)');
+                        var changeEl = item.querySelector('.small.fw-semibold');
+
+                        if (valueEl) {
+                            valueEl.textContent = parseFloat(update.value).toFixed(2);
+                        }
+                        if (changeEl) {
+                            var isPositive = parseFloat(update.change) >= 0;
+                            changeEl.className = (isPositive ? 'text-success' : 'text-danger') + ' small fw-semibold';
+                            changeEl.innerHTML =
+                                '<i class="bi ' + (isPositive ? 'bi-caret-up-fill' : 'bi-caret-down-fill') + '"></i> ' +
+                                parseFloat(update.change).toFixed(2) +
+                                ' (' + parseFloat(update.changePercent).toFixed(2) + '%)';
+                        }
+                    }
+                });
+            });
+
+            // ----------------------------------------------------------------
+            // Quick Search AJAX Handler
+            // ----------------------------------------------------------------
+            function setupQuickSearch(inputId, resultsId) {
+                var input = document.getElementById(inputId);
+                var results = document.getElementById(resultsId);
+                if (!input || !results) return;
+
+                var debounceTimer;
+
+                input.addEventListener('input', function () {
+                    var query = this.value.trim();
+
+                    clearTimeout(debounceTimer);
+
+                    if (query.length < 1) {
+                        results.innerHTML = '';
+                        return;
+                    }
+
+                    debounceTimer = setTimeout(function () {
+                        fetch('@Url.Action("QuickSearch", "Market")?query=' + encodeURIComponent(query), {
+                            headers: {
+                                'X-Requested-With': 'XMLHttpRequest'
+                            }
+                        })
+                        .then(function (response) {
+                            if (!response.ok) throw new Error('Search request failed');
+                            return response.json();
+                        })
+                        .then(function (data) {
+                            if (!data || data.length === 0) {
+                                results.innerHTML =
+                                    '<div class="text-center text-muted py-4">' +
+                                    '<i class="bi bi-search display-6 d-block mb-2 opacity-25"></i>' +
+                                    'لا توجد نتائج لـ "' + escapeHtml(query) + '"' +
+                                    '</div>';
+                                return;
+                            }
+
+                            var html = '<div class="list-group list-group-flush">';
+                            data.forEach(function (stock) {
+                                var isPositive = stock.changePercent >= 0;
+                                var changeClass = isPositive ? 'text-success' : 'text-danger';
+                                var changeIcon = isPositive ? 'bi-caret-up-fill' : 'bi-caret-down-fill';
+
+                                html +=
+                                    '<a href="/Stock/Details/' + encodeURIComponent(stock.symbol) + '"' +
+                                    '   class="list-group-item list-group-item-action d-flex align-items-center justify-content-between py-2 px-3">' +
+                                    '  <div>' +
+                                    '    <span class="fw-bold" style="color: #4F0E5E;">' + escapeHtml(stock.symbol) + '</span>' +
+                                    '    <br/><span class="text-muted small">' + escapeHtml(stock.companyName) + '</span>' +
+                                    '  </div>' +
+                                    '  <div class="text-end">' +
+                                    '    <span class="fw-semibold">' + parseFloat(stock.price).toFixed(2) + '</span>' +
+                                    '    <br/><span class="' + changeClass + ' fw-bold small">' +
+                                    '      <i class="bi ' + changeIcon + '"></i> ' +
+                                    parseFloat(stock.changePercent).toFixed(2) + '%' +
+                                    '    </span>' +
+                                    '  </div>' +
+                                    '</a>';
+                            });
+                            html += '</div>';
+                            results.innerHTML = html;
+                        })
+                        .catch(function (error) {
+                            console.error('Quick search error:', error);
+                            results.innerHTML =
+                                '<div class="text-center text-danger py-3">' +
+                                '<i class="bi bi-exclamation-triangle me-1"></i>' +
+                                'حدث خطأ أثناء البحث' +
+                                '</div>';
+                        });
+                    }, 300);
+                });
+            }
+
+            // Initialize quick search for both mobile and desktop
+            setupQuickSearch('quickSearchInput', 'quickSearchResults');
+            setupQuickSearch('desktopQuickSearchInput', 'desktopQuickSearchResults');
+
+            // ----------------------------------------------------------------
+            // Connection Status UI
+            // ----------------------------------------------------------------
+            function showConnectionStatus(message, type) {
+                var el = document.getElementById('connectionStatus');
+                if (!el) {
+                    el = document.createElement('div');
+                    el.id = 'connectionStatus';
+                    el.className = 'position-fixed bottom-0 start-50 translate-middle-x mb-3 px-4 py-2 rounded-pill shadow-lg text-white small fw-semibold';
+                    el.style.zIndex = '1090';
+                    el.style.transition = 'opacity 0.3s ease';
+                    document.body.appendChild(el);
+                }
+
+                var bgColors = {
+                    'success': '#198754',
+                    'warning': '#fd7e14',
+                    'danger': '#dc3545'
+                };
+
+                el.style.backgroundColor = bgColors[type] || '#6c757d';
+                el.textContent = message;
+                el.style.opacity = '1';
+                el.style.display = 'block';
+            }
+
+            function hideConnectionStatus(delay) {
+                setTimeout(function () {
+                    var el = document.getElementById('connectionStatus');
+                    if (el) {
+                        el.style.opacity = '0';
+                        setTimeout(function () {
+                            el.style.display = 'none';
+                        }, 300);
+                    }
+                }, delay || 0);
+            }
+
+            // ----------------------------------------------------------------
+            // Utility: Escape HTML
+            // ----------------------------------------------------------------
+            function escapeHtml(text) {
+                var div = document.createElement('div');
+                div.appendChild(document.createTextNode(text));
+                return div.innerHTML;
+            }
+
+            // ----------------------------------------------------------------
+            // Start Connection
+            // ----------------------------------------------------------------
+            function startConnection() {
+                connection.start()
+                    .then(function () {
+                        console.info('SignalR: Connected to /hubs/market');
+                    })
+                    .catch(function (err) {
+                        console.error('SignalR: Connection failed.', err);
+                        setTimeout(startConnection, 5000);
+                    });
+            }
+
+            // Keyboard shortcut: Ctrl+K / Cmd+K to open search
+            document.addEventListener('keydown', function (e) {
+                if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+                    e.preventDefault();
+                    var modal = document.getElementById('desktopSearchModal');
+                    if (modal && window.innerWidth >= 992) {
+                        var bsModal = bootstrap.Modal.getOrCreateInstance(modal);
+                        bsModal.toggle();
+                    }
+                }
+            });
+
+            // Start the SignalR connection
+            startConnection();
+        })();
+    </script>
+}
