@@ -1,0 +1,192 @@
+@model AlMal.Admin.ViewModels.StockListViewModel
+@{
+    ViewData["Title"] = "إدارة الأسهم";
+}
+
+@* قسم البحث والفلترة *@
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+    <div>
+        <span class="text-muted">إجمالي الأسهم: @Model.TotalCount</span>
+    </div>
+    <a asp-action="Create" class="btn btn-accent">
+        <i class="bi bi-plus-lg me-1"></i>إضافة سهم جديد
+    </a>
+</div>
+
+@* نموذج البحث والفلترة *@
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" asp-action="Index" class="row g-3 align-items-end">
+            <div class="col-md-5">
+                <label class="form-label">بحث</label>
+                <input type="text" name="search" class="form-control" placeholder="ابحث بالرمز أو الاسم..." value="@Model.SearchTerm" />
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">القطاع</label>
+                <select name="sector" class="form-select">
+                    <option value="">جميع القطاعات</option>
+                    @foreach (var sector in Model.Sectors)
+                    {
+                        <option value="@sector.Id" selected="@(Model.SectorFilter == sector.Id)">@sector.NameAr</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-3 d-flex gap-2">
+                <button type="submit" class="btn btn-primary flex-grow-1">
+                    <i class="bi bi-search me-1"></i>بحث
+                </button>
+                <a asp-action="Index" class="btn btn-outline-secondary">
+                    <i class="bi bi-x-lg"></i>
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@* جدول الأسهم *@
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>الرمز</th>
+                        <th>الاسم بالعربية</th>
+                        <th>القطاع</th>
+                        <th>آخر سعر</th>
+                        <th>الحالة</th>
+                        <th>الإجراءات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.Stocks.Count == 0)
+                    {
+                        <tr>
+                            <td colspan="6" class="text-center text-muted py-4">لا توجد أسهم</td>
+                        </tr>
+                    }
+                    @foreach (var stock in Model.Stocks)
+                    {
+                        <tr>
+                            <td>
+                                <strong class="font-monospace">@stock.Symbol</strong>
+                            </td>
+                            <td>@stock.NameAr</td>
+                            <td>@stock.SectorNameAr</td>
+                            <td>
+                                @if (stock.LastPrice.HasValue)
+                                {
+                                    <span class="font-monospace">@stock.LastPrice.Value.ToString("N3")</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">-</span>
+                                }
+                            </td>
+                            <td>
+                                <span class="badge @(stock.IsActive ? "badge-active" : "badge-inactive")"
+                                      id="badge-@stock.Id"
+                                      style="cursor: pointer;"
+                                      onclick="toggleActive(@stock.Id)">
+                                    @(stock.IsActive ? "مفعّل" : "معطّل")
+                                </span>
+                            </td>
+                            <td>
+                                <div class="d-flex gap-1">
+                                    <a asp-action="Edit" asp-route-id="@stock.Id"
+                                       class="btn btn-sm btn-outline-primary" title="تعديل">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <form asp-action="Delete" asp-route-id="@stock.Id" method="post"
+                                          onsubmit="return confirm('هل أنت متأكد من حذف هذا السهم؟');">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" title="حذف">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@* ترقيم الصفحات *@
+@if (Model.TotalPages > 1)
+{
+    <nav aria-label="ترقيم الصفحات" class="mt-4">
+        <ul class="pagination justify-content-center">
+            <li class="page-item @(Model.Page <= 1 ? "disabled" : "")">
+                <a class="page-link" asp-action="Index"
+                   asp-route-search="@Model.SearchTerm"
+                   asp-route-sector="@Model.SectorFilter"
+                   asp-route-page="@(Model.Page - 1)">
+                    السابق
+                </a>
+            </li>
+            @for (var i = 1; i <= Model.TotalPages; i++)
+            {
+                <li class="page-item @(i == Model.Page ? "active" : "")">
+                    <a class="page-link" asp-action="Index"
+                       asp-route-search="@Model.SearchTerm"
+                       asp-route-sector="@Model.SectorFilter"
+                       asp-route-page="@i">
+                        @i
+                    </a>
+                </li>
+            }
+            <li class="page-item @(Model.Page >= Model.TotalPages ? "disabled" : "")">
+                <a class="page-link" asp-action="Index"
+                   asp-route-search="@Model.SearchTerm"
+                   asp-route-sector="@Model.SectorFilter"
+                   asp-route-page="@(Model.Page + 1)">
+                    التالي
+                </a>
+            </li>
+        </ul>
+    </nav>
+}
+
+@section Scripts {
+    <script>
+        async function toggleActive(id) {
+            const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value
+                || '@Html.AntiForgeryToken()'.match(/value="([^"]+)"/)?.[1];
+
+            const formData = new FormData();
+            const tokenInput = document.querySelector('input[name="__RequestVerificationToken"]');
+            if (tokenInput) {
+                formData.append('__RequestVerificationToken', tokenInput.value);
+            }
+
+            try {
+                const response = await fetch(`/Stocks/ToggleActive/${id}`, {
+                    method: 'POST',
+                    headers: {
+                        'RequestVerificationToken': tokenInput ? tokenInput.value : ''
+                    },
+                    body: formData
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    const badge = document.getElementById(`badge-${id}`);
+                    if (result.isActive) {
+                        badge.className = 'badge badge-active';
+                        badge.textContent = 'مفعّل';
+                    } else {
+                        badge.className = 'badge badge-inactive';
+                        badge.textContent = 'معطّل';
+                    }
+                } else {
+                    alert(result.message || 'حدث خطأ');
+                }
+            } catch {
+                alert('حدث خطأ في الاتصال');
+            }
+        }
+    </script>
+}

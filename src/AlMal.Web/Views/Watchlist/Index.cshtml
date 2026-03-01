@@ -1,0 +1,177 @@
+@model AlMal.Web.ViewModels.Watchlist.WatchlistPageViewModel
+@{
+    ViewData["Title"] = "قائمة المتابعة";
+}
+
+<div class="container-fluid px-lg-4 py-3" x-data="watchlistPage()">
+
+    @* ===== PAGE HEADER ===== *@
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 fw-bold mb-1">
+                <i class="bi bi-star-fill text-warning ms-2"></i>قائمة المتابعة
+            </h1>
+            <p class="text-muted mb-0">الأسهم التي تتابعها في بورصة الكويت</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a asp-controller="Watchlist" asp-action="Alerts" class="btn btn-outline-primary rounded-pill">
+                <i class="bi bi-bell ms-1"></i>التنبيهات
+            </a>
+            <a asp-controller="Market" asp-action="Index" class="btn btn-outline-secondary rounded-pill">
+                <i class="bi bi-plus-lg ms-1"></i>إضافة أسهم
+            </a>
+        </div>
+    </div>
+
+    @if (Model.Items.Count == 0)
+    {
+        @* ===== EMPTY STATE ===== *@
+        @await Html.PartialAsync("_EmptyState", null, new ViewDataDictionary(ViewData) {
+            { "EmptyIcon", "bi-star" },
+            { "EmptyTitle", "قائمة المتابعة فارغة" },
+            { "EmptyMessage", "أضف أسهمك المفضلة لمتابعة أسعارها وتلقي التنبيهات" },
+            { "EmptyActionUrl", "/Market" },
+            { "EmptyActionText", "تصفح السوق" }
+        })
+    }
+    else
+    {
+        @* ===== WATCHLIST SUMMARY ===== *@
+        <div class="text-muted small mb-3">
+            <i class="bi bi-info-circle ms-1"></i>
+            عدد الأسهم في قائمتك: <strong>@Model.Items.Count</strong>
+        </div>
+
+        @* ===== STOCK CARDS ===== *@
+        <div class="row g-3">
+            @foreach (var item in Model.Items)
+            {
+                var changeClass = (item.DayChange ?? 0) >= 0 ? "text-success" : "text-danger";
+                var changeBgClass = (item.DayChange ?? 0) >= 0 ? "bg-success" : "bg-danger";
+                var changeIcon = (item.DayChange ?? 0) >= 0 ? "bi-caret-up-fill" : "bi-caret-down-fill";
+                var changeSign = (item.DayChange ?? 0) >= 0 ? "+" : "";
+
+                <div class="col-12 col-sm-6 col-lg-4 col-xl-3" id="watchlist-item-@item.StockId">
+                    <div class="card border-0 shadow-sm h-100 watchlist-card">
+                        <div class="card-body p-3">
+                            @* Top Row: Stock info + remove button *@
+                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                <div class="flex-grow-1">
+                                    <a asp-controller="Stock" asp-action="Detail" asp-route-symbol="@item.Symbol"
+                                       class="text-decoration-none">
+                                        <h6 class="fw-bold mb-1 text-body">@item.NameAr</h6>
+                                    </a>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="badge bg-dark bg-opacity-10 text-dark small fw-semibold">@item.Symbol</span>
+                                        <span class="text-muted small">@item.SectorNameAr</span>
+                                    </div>
+                                </div>
+                                <button type="button"
+                                        class="btn btn-sm btn-link text-warning p-0"
+                                        title="إزالة من المتابعة"
+                                        x-on:click="removeFromWatchlist(@item.StockId)">
+                                    <i class="bi bi-star-fill fs-5"></i>
+                                </button>
+                            </div>
+
+                            @* Price Section *@
+                            <div class="mb-2">
+                                @if (item.LastPrice.HasValue)
+                                {
+                                    <div class="d-flex align-items-baseline gap-2 mb-1">
+                                        <span class="fs-4 fw-bold">@item.LastPrice.Value.ToString("N3")</span>
+                                        <span class="text-muted small">د.ك</span>
+                                    </div>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="@changeClass fw-semibold small">
+                                            <i class="bi @changeIcon"></i>
+                                            @(changeSign)@(item.DayChange?.ToString("N3") ?? "0.000")
+                                        </span>
+                                        <span class="badge @changeBgClass bg-opacity-10 @changeClass small">
+                                            @(changeSign)@(item.DayChangePercent?.ToString("N2") ?? "0.00")%
+                                        </span>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">لا يوجد سعر</span>
+                                }
+                            </div>
+
+                            @* Bottom Row: Alert indicator + link *@
+                            <div class="d-flex justify-content-between align-items-center mt-3 pt-2 border-top">
+                                @if (item.AlertEnabled && item.AlertPrice.HasValue)
+                                {
+                                    <span class="badge bg-warning bg-opacity-10 text-warning">
+                                        <i class="bi bi-bell-fill ms-1"></i>
+                                        تنبيه عند @item.AlertPrice.Value.ToString("N3") د.ك
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted small">
+                                        <i class="bi bi-bell ms-1"></i>لا يوجد تنبيه
+                                    </span>
+                                }
+                                <a asp-controller="Stock" asp-action="Detail" asp-route-symbol="@item.Symbol"
+                                   class="btn btn-sm btn-outline-primary rounded-pill px-3">
+                                    التفاصيل <i class="bi bi-arrow-left me-1"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <script>
+        function watchlistPage() {
+            return {
+                async removeFromWatchlist(stockId) {
+                    if (!confirm('هل تريد إزالة هذا السهم من قائمة المتابعة؟')) return;
+
+                    try {
+                        const token = document.querySelector('input[name="__RequestVerificationToken"]');
+                        const response = await fetch('/Watchlist/Toggle?stockId=' + stockId, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'RequestVerificationToken': token ? token.value : ''
+                            }
+                        });
+
+                        if (response.ok) {
+                            const data = await response.json();
+                            if (data.success && !data.added) {
+                                const el = document.getElementById('watchlist-item-' + stockId);
+                                if (el) {
+                                    el.style.transition = 'opacity 0.3s, transform 0.3s';
+                                    el.style.opacity = '0';
+                                    el.style.transform = 'scale(0.95)';
+                                    setTimeout(() => el.remove(), 300);
+                                }
+                            }
+                        }
+                    } catch (err) {
+                        console.error('Error removing from watchlist:', err);
+                    }
+                }
+            };
+        }
+    </script>
+}
+
+@section Styles {
+    <style>
+        .watchlist-card {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .watchlist-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1) !important;
+        }
+    </style>
+}
