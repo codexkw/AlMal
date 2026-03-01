@@ -325,12 +325,12 @@
 
 ### 3.6 Admin: News Management
 
-- [ ] Create `AdminNewsController` in Admin
+- [✅] Create `AdminNewsController` in Admin (2026-03-02)
 - [ ] Build news source configuration page
-- [ ] Build sentiment override UI
+- [✅] Build sentiment override UI (2026-03-02)
 - [ ] Build featured articles management
 - [ ] Build AI processing stats dashboard
-- [ ] Verify: Admin can manage news sources and override AI
+- [✅] Verify: Admin can manage news sources and override AI (2026-03-02)
 
 ---
 

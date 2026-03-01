@@ -1,0 +1,187 @@
+@model AlMal.Admin.ViewModels.NewsListViewModel
+@{
+    ViewData["Title"] = "إدارة الأخبار";
+}
+
+@* قسم العنوان والإحصائيات *@
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+    <div>
+        <span class="text-muted">إجمالي الأخبار: @Model.TotalCount</span>
+    </div>
+</div>
+
+@* نموذج البحث والفلترة *@
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" asp-action="Index" class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label">بحث</label>
+                <input type="text" name="search" class="form-control" placeholder="ابحث في العناوين..." value="@Model.SearchTerm" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">المصدر</label>
+                <select name="source" class="form-select">
+                    <option value="">جميع المصادر</option>
+                    @foreach (var src in Model.AvailableSources)
+                    {
+                        <option value="@src" selected="@(Model.SourceFilter == src)">@src</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">التصنيف</label>
+                <select name="sentiment" class="form-select">
+                    <option value="">الكل</option>
+                    <option value="Positive" selected="@(Model.SentimentFilter == "Positive")">إيجابي</option>
+                    <option value="Negative" selected="@(Model.SentimentFilter == "Negative")">سلبي</option>
+                    <option value="Neutral" selected="@(Model.SentimentFilter == "Neutral")">محايد</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">حالة المعالجة</label>
+                <select name="processed" class="form-select">
+                    <option value="">الكل</option>
+                    <option value="true" selected="@(Model.ProcessedFilter == true)">تمت المعالجة</option>
+                    <option value="false" selected="@(Model.ProcessedFilter == false)">لم تتم المعالجة</option>
+                </select>
+            </div>
+            <div class="col-md-3 d-flex gap-2">
+                <button type="submit" class="btn btn-primary flex-grow-1">
+                    <i class="bi bi-search me-1"></i>بحث
+                </button>
+                <a asp-action="Index" class="btn btn-outline-secondary">
+                    <i class="bi bi-x-lg"></i>
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@* جدول الأخبار *@
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th style="width: 40%;">العنوان</th>
+                        <th>المصدر</th>
+                        <th>التصنيف</th>
+                        <th>المعالجة</th>
+                        <th>تاريخ النشر</th>
+                        <th>الإجراءات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.Items.Count == 0)
+                    {
+                        <tr>
+                            <td colspan="6" class="text-center text-muted py-4">لا توجد أخبار</td>
+                        </tr>
+                    }
+                    @foreach (var item in Model.Items)
+                    {
+                        <tr>
+                            <td>
+                                <a asp-action="Detail" asp-route-id="@item.Id" class="text-decoration-none">
+                                    @item.TruncatedTitle
+                                </a>
+                            </td>
+                            <td>
+                                <span class="text-muted">@item.Source</span>
+                            </td>
+                            <td>
+                                @if (item.Sentiment == AlMal.Domain.Enums.Sentiment.Positive)
+                                {
+                                    <span class="badge" style="background-color: rgba(34,197,94,0.15); color: var(--clr-positive);">إيجابي</span>
+                                }
+                                else if (item.Sentiment == AlMal.Domain.Enums.Sentiment.Negative)
+                                {
+                                    <span class="badge" style="background-color: rgba(239,68,68,0.15); color: var(--clr-negative);">سلبي</span>
+                                }
+                                else
+                                {
+                                    <span class="badge" style="background-color: rgba(156,163,175,0.15); color: var(--muted-color);">محايد</span>
+                                }
+                            </td>
+                            <td>
+                                @if (item.IsProcessed)
+                                {
+                                    <span class="badge badge-active">
+                                        <i class="bi bi-check-circle me-1"></i>تمت
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge badge-inactive">
+                                        <i class="bi bi-clock me-1"></i>قيد الانتظار
+                                    </span>
+                                }
+                            </td>
+                            <td>
+                                <span class="text-muted small">@item.PublishedAt.ToString("yyyy/MM/dd HH:mm")</span>
+                            </td>
+                            <td>
+                                <div class="d-flex gap-1">
+                                    <a asp-action="Detail" asp-route-id="@item.Id"
+                                       class="btn btn-sm btn-outline-primary" title="عرض">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    <form asp-action="Delete" asp-route-id="@item.Id" method="post"
+                                          onsubmit="return confirm('هل أنت متأكد من حذف هذا الخبر؟');">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" title="حذف">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@* ترقيم الصفحات *@
+@if (Model.TotalPages > 1)
+{
+    <nav aria-label="ترقيم الصفحات" class="mt-4">
+        <ul class="pagination justify-content-center">
+            <li class="page-item @(Model.Page <= 1 ? "disabled" : "")">
+                <a class="page-link" asp-action="Index"
+                   asp-route-search="@Model.SearchTerm"
+                   asp-route-source="@Model.SourceFilter"
+                   asp-route-sentiment="@Model.SentimentFilter"
+                   asp-route-processed="@Model.ProcessedFilter"
+                   asp-route-page="@(Model.Page - 1)">
+                    السابق
+                </a>
+            </li>
+            @for (var i = 1; i <= Model.TotalPages; i++)
+            {
+                <li class="page-item @(i == Model.Page ? "active" : "")">
+                    <a class="page-link" asp-action="Index"
+                       asp-route-search="@Model.SearchTerm"
+                       asp-route-source="@Model.SourceFilter"
+                       asp-route-sentiment="@Model.SentimentFilter"
+                       asp-route-processed="@Model.ProcessedFilter"
+                       asp-route-page="@i">
+                        @i
+                    </a>
+                </li>
+            }
+            <li class="page-item @(Model.Page >= Model.TotalPages ? "disabled" : "")">
+                <a class="page-link" asp-action="Index"
+                   asp-route-search="@Model.SearchTerm"
+                   asp-route-source="@Model.SourceFilter"
+                   asp-route-sentiment="@Model.SentimentFilter"
+                   asp-route-processed="@Model.ProcessedFilter"
+                   asp-route-page="@(Model.Page + 1)">
+                    التالي
+                </a>
+            </li>
+        </ul>
+    </nav>
+}
