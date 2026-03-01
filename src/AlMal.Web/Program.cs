@@ -1,7 +1,9 @@
 using AlMal.Domain.Entities;
 using AlMal.Application.Interfaces;
 using AlMal.Infrastructure.Data;
+using AlMal.Infrastructure.ExternalApis;
 using AlMal.Infrastructure.Identity;
+using AlMal.Infrastructure.Jobs;
 using Hangfire;
 using Hangfire.SqlServer;
 using Microsoft.AspNetCore.Identity;
@@ -86,8 +88,16 @@ try
         builder.Services.AddDistributedMemoryCache();
     }
 
+    // HttpClient for scraper
+    builder.Services.AddHttpClient<BoursakuwaitScraper>();
+    builder.Services.AddScoped<IMarketDataProvider, BoursakuwaitScraper>();
+
     // Services
     builder.Services.AddScoped<ITokenService, TokenService>();
+    builder.Services.AddScoped<MarketDataScraperJob>();
+    builder.Services.AddScoped<OrderBookScraperJob>();
+    builder.Services.AddScoped<DisclosureScraperJob>();
+    builder.Services.AddScoped<StockPriceHistoryJob>();
 
     builder.Services.AddControllersWithViews();
 
@@ -124,13 +134,34 @@ try
     app.UseAuthentication();
     app.UseAuthorization();
 
-    // Hangfire dashboard (admin only)
+    // Hangfire dashboard and recurring jobs
     if (!string.IsNullOrEmpty(hangfireConnection))
     {
         app.UseHangfireDashboard("/hangfire", new DashboardOptions
         {
             Authorization = [] // TODO: Add admin-only authorization filter
         });
+
+        // Register recurring jobs
+        RecurringJob.AddOrUpdate<MarketDataScraperJob>(
+            "market-data-scraper",
+            job => job.ExecuteAsync(CancellationToken.None),
+            "*/30 * * * * *"); // Every 30 seconds (job self-checks market hours)
+
+        RecurringJob.AddOrUpdate<OrderBookScraperJob>(
+            "order-book-scraper",
+            job => job.ExecuteAsync(CancellationToken.None),
+            "* * * * *"); // Every minute (job self-checks market hours)
+
+        RecurringJob.AddOrUpdate<DisclosureScraperJob>(
+            "disclosure-scraper",
+            job => job.ExecuteAsync(CancellationToken.None),
+            "*/5 * * * *"); // Every 5 minutes
+
+        RecurringJob.AddOrUpdate<StockPriceHistoryJob>(
+            "stock-price-history",
+            job => job.ExecuteAsync(CancellationToken.None),
+            "0 13 * * 0-4"); // Daily at 1 PM UTC (4 PM KWT) after market close, Sun-Thu
     }
 
     app.MapStaticAssets();

@@ -172,20 +172,20 @@
 
 ### 2.1 Market Data Scraper
 
-- [ ] Create `IMarketDataProvider` interface in Application
-- [ ] Create `BoursakuwaitScraper` in Infrastructure/ExternalApis
-- [ ] Implement stock list scraping (symbol, name, sector, price)
-- [ ] Implement market indices scraping (main index, sector indices)
-- [ ] Implement stock price history scraping (OHLCV)
-- [ ] Implement order book scraping
-- [ ] Implement disclosure scraping
-- [ ] Create Hangfire job: `MarketDataScraperJob` (every 30s during market hours)
-- [ ] Create Hangfire job: `OrderBookScraperJob` (every 60s during market hours)
-- [ ] Create Hangfire job: `DisclosureScraperJob` (every 5 min)
-- [ ] Add market hours check utility (Sun-Thu 9:00-12:40 KWT)
-- [ ] Add error handling and retry logic for scraping failures
-- [ ] Add Redis caching for scraped data
-- [ ] Verify: Scraper fetches real data from boursakuwait.com.kw
+- [✅] Create `IMarketDataProvider` interface in Application (2026-03-02)
+- [✅] Create `BoursakuwaitScraper` in Infrastructure/ExternalApis (2026-03-02)
+- [✅] Implement stock list scraping (symbol, name, sector, price) (2026-03-02)
+- [✅] Implement market indices scraping (main index, sector indices) (2026-03-02)
+- [✅] Implement stock price history scraping (OHLCV) (2026-03-02)
+- [✅] Implement order book scraping (2026-03-02)
+- [✅] Implement disclosure scraping (2026-03-02)
+- [✅] Create Hangfire job: `MarketDataScraperJob` (every 30s during market hours) (2026-03-02)
+- [✅] Create Hangfire job: `OrderBookScraperJob` (every 60s during market hours) (2026-03-02)
+- [✅] Create Hangfire job: `DisclosureScraperJob` (every 5 min) (2026-03-02)
+- [✅] Add market hours check utility (Sun-Thu 9:00-12:40 KWT) (2026-03-02)
+- [✅] Add error handling and retry logic for scraping failures (2026-03-02)
+- [✅] Add Redis caching for scraped data (2026-03-02)
+- [⏳] Verify: Scraper fetches real data from boursakuwait.com.kw (selectors need live site verification)
 
 ### 2.2 Market Dashboard
 
@@ -618,16 +618,16 @@
 | Phase | Tasks | Completed | Remaining |
 |-------|-------|-----------|-----------|
 | Phase 1: Foundation | 132 | 132 | 0 |
-| Phase 2: Market Core | 76 | 0 | 76 |
+| Phase 2: Market Core | 76 | 13 | 63 |
 | Phase 3: News & AI | 43 | 0 | 43 |
 | Phase 4: Community | 39 | 0 | 39 |
 | Phase 5: Academy & Simulation | 44 | 0 | 44 |
 | Phase 6: WhatsApp, CI/CD & Polish | 55 | 0 | 55 |
 | Phase 7: Flutter Mobile | 44 | 0 | 44 |
-| **TOTAL** | **433** | **132** | **301** |
+| **TOTAL** | **433** | **145** | **288** |
 
 > *Update this summary table after completing each phase section.*
 
 ---
 
-*Last updated: 2026-03-02 — Phase 1 complete*
+*Last updated: 2026-03-02 — Phase 2 in progress (2.1 scraper done)*
