@@ -92,12 +92,17 @@ try
     builder.Services.AddHttpClient<BoursakuwaitScraper>();
     builder.Services.AddScoped<IMarketDataProvider, BoursakuwaitScraper>();
 
+    // HttpClient for news
+    builder.Services.AddHttpClient<NewsDataClient>();
+    builder.Services.AddScoped<INewsProvider, NewsDataClient>();
+
     // Services
     builder.Services.AddScoped<ITokenService, TokenService>();
     builder.Services.AddScoped<MarketDataScraperJob>();
     builder.Services.AddScoped<OrderBookScraperJob>();
     builder.Services.AddScoped<DisclosureScraperJob>();
     builder.Services.AddScoped<StockPriceHistoryJob>();
+    builder.Services.AddScoped<NewsFetcherJob>();
 
     builder.Services.AddSignalR();
     builder.Services.AddControllersWithViews();
@@ -163,6 +168,11 @@ try
             "stock-price-history",
             job => job.ExecuteAsync(CancellationToken.None),
             "0 13 * * 0-4"); // Daily at 1 PM UTC (4 PM KWT) after market close, Sun-Thu
+
+        RecurringJob.AddOrUpdate<NewsFetcherJob>(
+            "news-fetcher",
+            job => job.ExecuteAsync(CancellationToken.None),
+            "*/15 * * * *"); // Every 15 minutes
     }
 
     app.MapStaticAssets();
