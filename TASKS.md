@@ -204,20 +204,20 @@
 
 ### 2.3 Stock Detail Page
 
-- [ ] Create `StockController` in Web
-- [ ] Create `StockDetailViewModel`
-- [ ] Build stock header (name, price, change, watchlist star, alert bell)
-- [ ] Build Tab A: Overview (company info, key data cards)
-- [ ] Build Tab B: Interactive Chart (TradingView Lightweight Charts)
-- [ ] Implement chart timeframes (1D, 1W, 1M, 3M, 6M, 1Y, All)
+- [✅] Create `StockController` in Web (2026-03-02)
+- [✅] Create `StockDetailViewModel` (2026-03-02)
+- [✅] Build stock header (name, price, change, watchlist star, alert bell) (2026-03-02)
+- [✅] Build Tab A: Overview (company info, key data cards) (2026-03-02)
+- [✅] Build Tab B: Interactive Chart (TradingView Lightweight Charts) (2026-03-02)
+- [✅] Implement chart timeframes (1D, 1W, 1M, 3M, 6M, 1Y, All) (2026-03-02)
 - [ ] Implement chart indicators (SMA, EMA, RSI, MACD, Bollinger)
 - [ ] Implement volume histogram below chart
-- [ ] Build Tab C: Explain Movement (placeholder - "Coming soon" button)
-- [ ] Build Tab D: Financial Ratios (calculate P/E, P/B, ROE, etc.)
-- [ ] Build Tab E: Disclosures list (chronological, type badges, infinite scroll)
-- [ ] Build Tab F: Order Book (bid/ask columns, pressure indicator)
-- [ ] Add mobile responsive layout (swipeable tabs, full-width chart)
-- [ ] Verify: All 6 tabs render with real/sample data
+- [✅] Build Tab C: Explain Movement (placeholder - "Coming soon" button) (2026-03-02)
+- [✅] Build Tab D: Financial Ratios (calculate P/E, P/B, ROE, etc.) (2026-03-02)
+- [✅] Build Tab E: Disclosures list (chronological, type badges, infinite scroll) (2026-03-02)
+- [✅] Build Tab F: Order Book (bid/ask columns, pressure indicator) (2026-03-02)
+- [✅] Add mobile responsive layout (swipeable tabs, full-width chart) (2026-03-02)
+- [✅] Verify: All 6 tabs render with real/sample data (2026-03-02)
 
 ### 2.4 Real-Time Updates (SignalR)
 
