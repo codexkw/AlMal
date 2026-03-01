@@ -296,32 +296,32 @@
 
 ### 3.3 AI: Movement Explainer
 
-- [ ] Create `IAiAnalysisService` interface in Application
-- [ ] Create `ClaudeAiClient` in Infrastructure/ExternalApis
-- [ ] Implement `ExplainMovementAsync` method
-- [ ] Build system prompt with stock data injection
-- [ ] Add Redis caching (30 min per stock)
-- [ ] Wire "Explain Movement" button on stock page Tab C
-- [ ] Build loading skeleton for AI response
-- [ ] Add educational disclaimer to all AI responses
-- [ ] Verify: AI explains stock movements in Arabic
+- [✅] Create `IAiAnalysisService` interface in Application (2026-03-02)
+- [✅] Create `ClaudeAiClient` in Infrastructure/ExternalApis (2026-03-02)
+- [✅] Implement `ExplainMovementAsync` method (2026-03-02)
+- [✅] Build system prompt with stock data injection (2026-03-02)
+- [✅] Add Redis caching (30 min per stock) (2026-03-02)
+- [✅] Wire "Explain Movement" button on stock page Tab C (2026-03-02)
+- [✅] Build loading skeleton for AI response (2026-03-02)
+- [✅] Add educational disclaimer to all AI responses (2026-03-02)
+- [✅] Verify: AI explains stock movements in Arabic (2026-03-02)
 
 ### 3.4 AI: Disclosure Summarizer
 
-- [ ] Implement `SummarizeDisclosureAsync` method in ClaudeAiClient
-- [ ] Create Hangfire job: `AiDisclosureProcessorJob` (on new disclosure)
-- [ ] Store AI summary in Disclosure.AiSummary
-- [ ] Display AI summary in stock disclosures tab
-- [ ] Verify: New disclosures get auto-summarized
+- [✅] Implement `SummarizeDisclosureAsync` method in ClaudeAiClient (2026-03-02)
+- [✅] Create Hangfire job: `AiDisclosureProcessorJob` (on new disclosure) (2026-03-02)
+- [✅] Store AI summary in Disclosure.AiSummary (2026-03-02)
+- [✅] Display AI summary in stock disclosures tab (2026-03-02)
+- [✅] Verify: New disclosures get auto-summarized (2026-03-02)
 
 ### 3.5 AI: News Context
 
-- [ ] Implement `GenerateNewsContextAsync` method in ClaudeAiClient
-- [ ] Create Hangfire job: `AiNewsProcessorJob` (on new article)
-- [ ] Generate sentiment, summary, and context data
-- [ ] Store in NewsArticle fields (Sentiment, Summary, ContextData)
-- [ ] Wire "Understand Context" button: expand card with context
-- [ ] Verify: News articles have AI-generated sentiment and context
+- [✅] Implement `GenerateNewsContextAsync` method in ClaudeAiClient (2026-03-02)
+- [✅] Create Hangfire job: `AiNewsProcessorJob` (on new article) (2026-03-02)
+- [✅] Generate sentiment, summary, and context data (2026-03-02)
+- [✅] Store in NewsArticle fields (Sentiment, Summary, ContextData) (2026-03-02)
+- [✅] Wire "Understand Context" button: expand card with context (2026-03-02)
+- [✅] Verify: News articles have AI-generated sentiment and context (2026-03-02)
 
 ### 3.6 Admin: News Management
 
