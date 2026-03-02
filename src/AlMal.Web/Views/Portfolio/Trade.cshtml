@@ -1,0 +1,312 @@
+@model AlMal.Web.ViewModels.Portfolio.TradeViewModel
+@{
+    ViewData["Title"] = Model.TradeType == "Buy" ? "شراء سهم" : "بيع سهم";
+    var isBuy = Model.TradeType == "Buy";
+}
+
+<div class="container py-3" style="max-width: 720px;">
+
+    @* ===== BREADCRUMB ===== *@
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb small">
+            <li class="breadcrumb-item">
+                <a asp-action="Index" class="text-decoration-none">
+                    <i class="bi bi-briefcase ms-1"></i>المحفظة
+                </a>
+            </li>
+            <li class="breadcrumb-item active">@(isBuy ? "شراء" : "بيع")</li>
+        </ol>
+    </nav>
+
+    @* ===== ERROR MESSAGES ===== *@
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle-fill ms-1"></i>@TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    @* ===== TRADE TYPE TABS ===== *@
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-transparent p-0">
+            <ul class="nav nav-tabs nav-fill border-0" role="tablist">
+                <li class="nav-item">
+                    <a class="nav-link @(isBuy ? "active fw-bold" : "") text-success"
+                       asp-action="Trade" asp-route-type="buy"
+                       asp-route-stockId="@Model.StockId">
+                        <i class="bi bi-cart-plus ms-1"></i>شراء
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link @(!isBuy ? "active fw-bold" : "") text-danger"
+                       asp-action="Trade" asp-route-type="sell"
+                       asp-route-stockId="@Model.StockId">
+                        <i class="bi bi-cart-dash ms-1"></i>بيع
+                    </a>
+                </li>
+            </ul>
+        </div>
+
+        <div class="card-body p-4" x-data="tradeForm()">
+            @* Cash Balance Info *@
+            <div class="alert alert-light border d-flex justify-content-between align-items-center mb-4">
+                <span class="text-muted">
+                    <i class="bi bi-wallet2 ms-1"></i>الرصيد المتاح
+                </span>
+                <span class="fw-bold">@Model.CashBalance.ToString("N3") د.ك</span>
+            </div>
+
+            <form asp-action="ExecuteTrade" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="tradeType" value="@Model.TradeType" />
+
+                @if (isBuy)
+                {
+                    @* ===== BUY: Stock Search ===== *@
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold">السهم</label>
+                        <div class="position-relative">
+                            <input type="text"
+                                   class="form-control form-control-lg"
+                                   placeholder="ابحث عن سهم بالرمز أو الاسم..."
+                                   x-model="searchQuery"
+                                   x-on:input.debounce.300ms="searchStocks()"
+                                   x-on:focus="showResults = searchResults.length > 0"
+                                   x-on:click.away="showResults = false"
+                                   autocomplete="off"
+                                   id="stockSearch" />
+                            <input type="hidden" name="stockId" x-model="selectedStockId" id="stockIdInput"
+                                   value="@(Model.StockId?.ToString() ?? "")" />
+
+                            @* Selected stock display *@
+                            <template x-if="selectedStockId">
+                                <div class="alert alert-success mt-2 d-flex justify-content-between align-items-center py-2">
+                                    <div>
+                                        <span class="fw-bold" x-text="selectedSymbol"></span>
+                                        <span class="text-muted small me-1" x-text="selectedName"></span>
+                                    </div>
+                                    <div>
+                                        <span class="fw-semibold" x-text="selectedPrice + ' د.ك'"></span>
+                                        <button type="button" class="btn btn-sm btn-link text-danger p-0 me-2"
+                                                x-on:click="clearSelection()">
+                                            <i class="bi bi-x-circle"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </template>
+
+                            @* Search results dropdown *@
+                            <div class="position-absolute w-100 bg-white border rounded-3 shadow-lg mt-1"
+                                 style="z-index: 1000; max-height: 300px; overflow-y: auto;"
+                                 x-show="showResults && searchResults.length > 0"
+                                 x-cloak>
+                                <template x-for="stock in searchResults" :key="stock.id">
+                                    <div class="d-flex justify-content-between align-items-center px-3 py-2 border-bottom cursor-pointer stock-search-item"
+                                         style="cursor: pointer;"
+                                         x-on:click="selectStock(stock)">
+                                        <div>
+                                            <span class="fw-bold" x-text="stock.symbol"></span>
+                                            <span class="text-muted small me-1" x-text="stock.nameAr"></span>
+                                        </div>
+                                        <span class="text-muted small" x-text="(stock.lastPrice ? stock.lastPrice.toFixed(3) : '0.000') + ' د.ك'"></span>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    @* ===== SELL: Select from Holdings ===== *@
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold">اختر السهم للبيع</label>
+                        @if (Model.CurrentHoldings.Count == 0)
+                        {
+                            <div class="alert alert-warning">
+                                <i class="bi bi-info-circle ms-1"></i>لا توجد أسهم في محفظتك للبيع
+                            </div>
+                        }
+                        else
+                        {
+                            <select class="form-select form-select-lg"
+                                    name="stockId"
+                                    x-model="selectedStockId"
+                                    x-on:change="onHoldingSelect()">
+                                <option value="">اختر سهم...</option>
+                                @foreach (var holding in Model.CurrentHoldings)
+                                {
+                                    var isSelected = Model.StockId == holding.StockId;
+                                    if (isSelected)
+                                    {
+                                        <option value="@holding.StockId"
+                                                data-symbol="@holding.Symbol"
+                                                data-name="@holding.NameAr"
+                                                data-price="@holding.CurrentPrice"
+                                                data-qty="@holding.Quantity"
+                                                selected="selected">
+                                            @holding.Symbol - @holding.NameAr (الكمية: @holding.Quantity)
+                                        </option>
+                                    }
+                                    else
+                                    {
+                                        <option value="@holding.StockId"
+                                                data-symbol="@holding.Symbol"
+                                                data-name="@holding.NameAr"
+                                                data-price="@holding.CurrentPrice"
+                                                data-qty="@holding.Quantity">
+                                            @holding.Symbol - @holding.NameAr (الكمية: @holding.Quantity)
+                                        </option>
+                                    }
+                                }
+                            </select>
+
+                            <template x-if="selectedStockId && maxQty > 0">
+                                <div class="alert alert-info mt-2 py-2 small">
+                                    <i class="bi bi-info-circle ms-1"></i>
+                                    الحد الأقصى للبيع: <strong x-text="maxQty"></strong> سهم
+                                    | السعر الحالي: <strong x-text="selectedPrice + ' د.ك'"></strong>
+                                </div>
+                            </template>
+                        }
+                    </div>
+                }
+
+                @* ===== QUANTITY ===== *@
+                <div class="mb-4">
+                    <label class="form-label fw-semibold">الكمية</label>
+                    <input type="number"
+                           class="form-control form-control-lg"
+                           name="quantity"
+                           x-model.number="quantity"
+                           min="1"
+                           :max="maxQty > 0 && !@(isBuy ? "true" : "false") ? maxQty : undefined"
+                           placeholder="أدخل عدد الأسهم"
+                           required />
+                </div>
+
+                @* ===== ESTIMATED COST/PROCEEDS ===== *@
+                <template x-if="selectedPrice > 0 && quantity > 0">
+                    <div class="card bg-light border mb-4">
+                        <div class="card-body py-3">
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-muted">السعر</span>
+                                <span x-text="parseFloat(selectedPrice).toFixed(3) + ' د.ك'"></span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-muted">الكمية</span>
+                                <span x-text="quantity"></span>
+                            </div>
+                            <hr class="my-2" />
+                            <div class="d-flex justify-content-between fw-bold">
+                                <span>@(isBuy ? "التكلفة المقدّرة" : "العائد المقدّر")</span>
+                                <span class="@(isBuy ? "text-danger" : "text-success")"
+                                      x-text="(parseFloat(selectedPrice) * quantity).toFixed(3) + ' د.ك'"></span>
+                            </div>
+                            @if (isBuy)
+                            {
+                                <template x-if="parseFloat(selectedPrice) * quantity > @Model.CashBalance">
+                                    <div class="text-danger small mt-2">
+                                        <i class="bi bi-exclamation-circle ms-1"></i>
+                                        الرصيد غير كافٍ لإتمام هذه الصفقة
+                                    </div>
+                                </template>
+                            }
+                        </div>
+                    </div>
+                </template>
+
+                @* ===== SUBMIT ===== *@
+                <button type="submit"
+                        class="btn @(isBuy ? "btn-success" : "btn-danger") btn-lg w-100 rounded-pill fw-bold"
+                        :disabled="!selectedStockId || quantity <= 0">
+                    <i class="bi @(isBuy ? "bi-check-circle" : "bi-arrow-down-circle") ms-1"></i>
+                    @(isBuy ? "تأكيد الشراء" : "تأكيد البيع")
+                </button>
+            </form>
+        </div>
+    </div>
+
+    @* ===== DISCLAIMER ===== *@
+    <div class="text-center text-muted small mt-4">
+        <i class="bi bi-info-circle ms-1"></i>
+        هذه محفظة افتراضية للتعلم والتدريب فقط. جميع الصفقات وهمية ولا تمثل تداولاً حقيقياً.
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function tradeForm() {
+            return {
+                searchQuery: '@(Model.StockSymbol ?? "")',
+                searchResults: [],
+                showResults: false,
+                selectedStockId: '@(Model.StockId?.ToString() ?? "")',
+                selectedSymbol: '@(Model.StockSymbol ?? "")',
+                selectedName: '@(Model.StockNameAr ?? "")',
+                selectedPrice: '@(Model.StockPrice?.ToString("F3") ?? "0")',
+                quantity: @(Model.Quantity > 0 ? Model.Quantity.ToString() : "0"),
+                maxQty: @(Model.MaxQuantity?.ToString() ?? "0"),
+
+                async searchStocks() {
+                    if (this.searchQuery.length < 1) {
+                        this.searchResults = [];
+                        this.showResults = false;
+                        return;
+                    }
+                    try {
+                        const response = await fetch(`/Portfolio/SearchStock?q=${encodeURIComponent(this.searchQuery)}`);
+                        this.searchResults = await response.json();
+                        this.showResults = true;
+                    } catch (e) {
+                        console.error('Search error:', e);
+                    }
+                },
+
+                selectStock(stock) {
+                    this.selectedStockId = stock.id;
+                    this.selectedSymbol = stock.symbol;
+                    this.selectedName = stock.nameAr;
+                    this.selectedPrice = stock.lastPrice ? stock.lastPrice.toFixed(3) : '0.000';
+                    this.searchQuery = stock.symbol;
+                    this.showResults = false;
+                    document.getElementById('stockIdInput').value = stock.id;
+                },
+
+                clearSelection() {
+                    this.selectedStockId = '';
+                    this.selectedSymbol = '';
+                    this.selectedName = '';
+                    this.selectedPrice = '0';
+                    this.searchQuery = '';
+                    this.quantity = 0;
+                    document.getElementById('stockIdInput').value = '';
+                },
+
+                onHoldingSelect() {
+                    const select = document.querySelector('select[name="stockId"]');
+                    const option = select.options[select.selectedIndex];
+                    if (option && option.value) {
+                        this.selectedPrice = option.dataset.price || '0';
+                        this.maxQty = parseInt(option.dataset.qty) || 0;
+                        this.selectedSymbol = option.dataset.symbol || '';
+                        this.selectedName = option.dataset.name || '';
+                    } else {
+                        this.selectedPrice = '0';
+                        this.maxQty = 0;
+                    }
+                    this.quantity = 0;
+                },
+
+                init() {
+                    @if (!isBuy && Model.StockId.HasValue)
+                    {
+                        <text>
+                        this.$nextTick(() => this.onHoldingSelect());
+                        </text>
+                    }
+                }
+            }
+        }
+    </script>
+}

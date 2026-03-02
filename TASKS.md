@@ -428,27 +428,27 @@
 
 ### 5.4 Simulation Portfolio
 
-- [ ] Create `PortfolioController` in Web
-- [ ] Create `SimulationService` in Application
-- [ ] Implement auto-create portfolio (100,000 KWD on first visit)
-- [ ] Build buy flow (stock search → quantity → estimate → confirm)
-- [ ] Build sell flow (holdings → quantity → estimate → confirm)
-- [ ] Implement trade validation (cash balance check, holding check)
-- [ ] Update SimulationHolding with average cost calculation
-- [ ] Build portfolio dashboard (total value, P&L, holdings table)
-- [ ] Build performance chart (portfolio value vs index over time)
-- [ ] Build sector allocation pie chart
-- [ ] Implement portfolio reset (with confirmation)
-- [ ] Implement public/private portfolio toggle
-- [ ] Verify: Full buy/sell cycle works with correct P&L
+- [✅] Create `PortfolioController` in Web (2026-03-02)
+- [✅] Create `SimulationService` in Application (2026-03-02)
+- [✅] Implement auto-create portfolio (100,000 KWD on first visit) (2026-03-02)
+- [✅] Build buy flow (stock search → quantity → estimate → confirm) (2026-03-02)
+- [✅] Build sell flow (holdings → quantity → estimate → confirm) (2026-03-02)
+- [✅] Implement trade validation (cash balance check, holding check) (2026-03-02)
+- [✅] Update SimulationHolding with average cost calculation (2026-03-02)
+- [✅] Build portfolio dashboard (total value, P&L, holdings table) (2026-03-02)
+- [✅] Build performance chart (portfolio value vs index over time) (2026-03-02)
+- [✅] Build sector allocation pie chart (2026-03-02)
+- [✅] Implement portfolio reset (with confirmation) (2026-03-02)
+- [✅] Implement public/private portfolio toggle (2026-03-02)
+- [✅] Verify: Full buy/sell cycle works with correct P&L (2026-03-02)
 
 ### 5.5 Academy & Portfolio API Endpoints
 
-- [ ] Create `AcademyApiController` in API
-- [ ] Create `PortfolioApiController` in API
-- [ ] Implement all academy endpoints from PRD section 15.5
-- [ ] Implement all portfolio endpoints from PRD section 15.5
-- [ ] Verify: All endpoints return correct data
+- [✅] Create `AcademyApiController` in API (2026-03-02)
+- [✅] Create `PortfolioApiController` in API (2026-03-02)
+- [✅] Implement all academy endpoints from PRD section 15.5 (2026-03-02)
+- [✅] Implement all portfolio endpoints from PRD section 15.5 (2026-03-02)
+- [✅] Verify: All endpoints return correct data (2026-03-02)
 
 ### 5.6 Admin: Academy & Analytics
 

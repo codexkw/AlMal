@@ -1,0 +1,385 @@
+@model AlMal.Web.ViewModels.Portfolio.PortfolioDashboardViewModel
+@using AlMal.Domain.Enums
+@{
+    ViewData["Title"] = "المحفظة الافتراضية";
+    var isPublicView = ViewData["IsPublicView"] as bool? ?? false;
+    var ownerName = ViewData["OwnerName"] as string;
+    var pnlClass = Model.PnL >= 0 ? "text-success" : "text-danger";
+    var pnlIcon = Model.PnL >= 0 ? "bi-caret-up-fill" : "bi-caret-down-fill";
+}
+
+<div class="container-fluid px-lg-4 py-3">
+
+    @* ===== PAGE HEADER ===== *@
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <div>
+            <h1 class="h3 fw-bold mb-1">
+                <i class="bi bi-briefcase-fill text-primary ms-2"></i>
+                @if (isPublicView)
+                {
+                    <span>محفظة @ownerName</span>
+                }
+                else
+                {
+                    <span>المحفظة الافتراضية</span>
+                }
+            </h1>
+            <p class="text-muted mb-0">
+                @if (isPublicView)
+                {
+                    <span>عرض للقراءة فقط</span>
+                }
+                else
+                {
+                    <span>تدرب على التداول برأس مال افتراضي بدون مخاطر</span>
+                }
+            </p>
+        </div>
+        @if (!isPublicView)
+        {
+            <div class="d-flex gap-2 flex-wrap">
+                <a asp-action="Trade" asp-route-type="buy"
+                   class="btn btn-primary rounded-pill">
+                    <i class="bi bi-cart-plus ms-1"></i>شراء
+                </a>
+                <a asp-action="Trade" asp-route-type="sell"
+                   class="btn btn-outline-danger rounded-pill">
+                    <i class="bi bi-cart-dash ms-1"></i>بيع
+                </a>
+                <div class="dropdown">
+                    <button class="btn btn-outline-secondary rounded-pill dropdown-toggle"
+                            type="button" data-bs-toggle="dropdown">
+                        <i class="bi bi-gear ms-1"></i>إعدادات
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li>
+                            <form asp-action="TogglePublic" method="post">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="dropdown-item">
+                                    <i class="bi @(Model.IsPublic ? "bi-eye-slash" : "bi-eye") ms-1"></i>
+                                    @(Model.IsPublic ? "إخفاء المحفظة" : "جعل المحفظة عامة")
+                                </button>
+                            </form>
+                        </li>
+                        <li><hr class="dropdown-divider" /></li>
+                        <li>
+                            <button type="button" class="dropdown-item text-danger"
+                                    data-bs-toggle="modal" data-bs-target="#resetModal">
+                                <i class="bi bi-arrow-counterclockwise ms-1"></i>إعادة تعيين المحفظة
+                            </button>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        }
+    </div>
+
+    @* ===== SUCCESS / ERROR MESSAGES ===== *@
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="bi bi-check-circle-fill ms-1"></i>@TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle-fill ms-1"></i>@TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    @* ===== PORTFOLIO SUMMARY CARDS ===== *@
+    <div class="row g-3 mb-4">
+        @* Total Value *@
+        <div class="col-6 col-lg-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <div class="text-muted small mb-1">إجمالي المحفظة</div>
+                    <div class="h4 fw-bold mb-0">@Model.TotalPortfolioValue.ToString("N3")</div>
+                    <div class="text-muted small">د.ك</div>
+                </div>
+            </div>
+        </div>
+        @* Cash Balance *@
+        <div class="col-6 col-lg-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <div class="text-muted small mb-1">الرصيد النقدي</div>
+                    <div class="h4 fw-bold mb-0">@Model.CashBalance.ToString("N3")</div>
+                    <div class="text-muted small">د.ك</div>
+                </div>
+            </div>
+        </div>
+        @* P&L Absolute *@
+        <div class="col-6 col-lg-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <div class="text-muted small mb-1">الربح / الخسارة</div>
+                    <div class="h4 fw-bold mb-0 @pnlClass">
+                        <i class="bi @pnlIcon"></i>
+                        @Model.PnL.ToString("N3")
+                    </div>
+                    <div class="text-muted small">د.ك</div>
+                </div>
+            </div>
+        </div>
+        @* P&L Percentage *@
+        <div class="col-6 col-lg-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <div class="text-muted small mb-1">نسبة العائد</div>
+                    <div class="h4 fw-bold mb-0 @pnlClass">
+                        <i class="bi @pnlIcon"></i>
+                        @Model.PnLPercent.ToString("N2")%
+                    </div>
+                    <div class="text-muted small">من @Model.InitialCapital.ToString("N3") د.ك</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @* ===== HOLDINGS TABLE ===== *@
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
+            <h5 class="mb-0 fw-bold">
+                <i class="bi bi-pie-chart-fill text-primary ms-2"></i>المقتنيات
+            </h5>
+            <span class="badge bg-primary rounded-pill">@Model.Holdings.Count سهم</span>
+        </div>
+        <div class="card-body p-0">
+            @if (Model.Holdings.Count == 0)
+            {
+                <div class="text-center py-5 text-muted">
+                    <i class="bi bi-inbox display-4 d-block mb-3"></i>
+                    <p class="mb-2">لا توجد مقتنيات حالياً</p>
+                    @if (!isPublicView)
+                    {
+                        <a asp-action="Trade" asp-route-type="buy" class="btn btn-sm btn-primary rounded-pill">
+                            <i class="bi bi-cart-plus ms-1"></i>ابدأ التداول
+                        </a>
+                    }
+                </div>
+            }
+            else
+            {
+                @* Desktop table *@
+                <div class="table-responsive d-none d-md-block">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>السهم</th>
+                                <th class="text-center">الكمية</th>
+                                <th class="text-center">متوسط التكلفة</th>
+                                <th class="text-center">السعر الحالي</th>
+                                <th class="text-center">القيمة السوقية</th>
+                                <th class="text-center">الربح / الخسارة</th>
+                                <th class="text-center">الوزن</th>
+                                @if (!isPublicView)
+                                {
+                                    <th class="text-center">إجراء</th>
+                                }
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var holding in Model.Holdings)
+                            {
+                                var holdingPnlClass = holding.PnL >= 0 ? "text-success" : "text-danger";
+                                <tr>
+                                    <td>
+                                        <div class="fw-bold">@holding.Symbol</div>
+                                        <div class="text-muted small">@holding.NameAr</div>
+                                    </td>
+                                    <td class="text-center">@holding.Quantity.ToString("N0")</td>
+                                    <td class="text-center">@holding.AverageCost.ToString("N3")</td>
+                                    <td class="text-center">@holding.CurrentPrice.ToString("N3")</td>
+                                    <td class="text-center">@holding.MarketValue.ToString("N3")</td>
+                                    <td class="text-center @holdingPnlClass">
+                                        @holding.PnL.ToString("N3")
+                                        <br />
+                                        <small>(@holding.PnLPercent.ToString("N2")%)</small>
+                                    </td>
+                                    <td class="text-center">
+                                        <div class="progress" style="height: 6px; min-width: 60px;">
+                                            <div class="progress-bar" role="progressbar"
+                                                 style="width: @holding.WeightPercent.ToString("N1")%"></div>
+                                        </div>
+                                        <small>@holding.WeightPercent.ToString("N1")%</small>
+                                    </td>
+                                    @if (!isPublicView)
+                                    {
+                                        <td class="text-center">
+                                            <a asp-action="Trade" asp-route-type="sell" asp-route-stockId="@holding.StockId"
+                                               class="btn btn-sm btn-outline-danger rounded-pill">
+                                                بيع
+                                            </a>
+                                        </td>
+                                    }
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                @* Mobile cards *@
+                <div class="d-md-none p-3">
+                    @foreach (var holding in Model.Holdings)
+                    {
+                        var holdingPnlClass = holding.PnL >= 0 ? "text-success" : "text-danger";
+                        <div class="card mb-2 border">
+                            <div class="card-body py-2 px-3">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <div>
+                                        <span class="fw-bold">@holding.Symbol</span>
+                                        <span class="text-muted small me-1">@holding.NameAr</span>
+                                    </div>
+                                    <span class="@holdingPnlClass fw-semibold small">
+                                        @holding.PnLPercent.ToString("N2")%
+                                    </span>
+                                </div>
+                                <div class="row small text-muted">
+                                    <div class="col-6">الكمية: <strong>@holding.Quantity</strong></div>
+                                    <div class="col-6">السعر: <strong>@holding.CurrentPrice.ToString("N3")</strong></div>
+                                    <div class="col-6">القيمة: <strong>@holding.MarketValue.ToString("N3")</strong></div>
+                                    <div class="col-6">الربح: <strong class="@holdingPnlClass">@holding.PnL.ToString("N3")</strong></div>
+                                </div>
+                                @if (!isPublicView)
+                                {
+                                    <div class="mt-2 text-end">
+                                        <a asp-action="Trade" asp-route-type="sell" asp-route-stockId="@holding.StockId"
+                                           class="btn btn-sm btn-outline-danger rounded-pill">بيع</a>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+
+    @* ===== TRADE HISTORY ===== *@
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
+            <h5 class="mb-0 fw-bold">
+                <i class="bi bi-clock-history text-primary ms-2"></i>سجل الصفقات
+            </h5>
+            <span class="badge bg-secondary rounded-pill">@Model.RecentTrades.Count صفقة</span>
+        </div>
+        <div class="card-body p-0">
+            @if (Model.RecentTrades.Count == 0)
+            {
+                <div class="text-center py-5 text-muted">
+                    <i class="bi bi-clock display-4 d-block mb-3"></i>
+                    <p class="mb-0">لا توجد صفقات سابقة</p>
+                </div>
+            }
+            else
+            {
+                @* Desktop table *@
+                <div class="table-responsive d-none d-md-block">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>التاريخ</th>
+                                <th>السهم</th>
+                                <th class="text-center">النوع</th>
+                                <th class="text-center">الكمية</th>
+                                <th class="text-center">السعر</th>
+                                <th class="text-center">الإجمالي</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var trade in Model.RecentTrades)
+                            {
+                                var typeClass = trade.Type == TradeType.Buy ? "text-success" : "text-danger";
+                                var typeLabel = trade.Type == TradeType.Buy ? "شراء" : "بيع";
+                                var typeBadge = trade.Type == TradeType.Buy ? "bg-success" : "bg-danger";
+                                <tr>
+                                    <td>
+                                        <div class="small">@trade.ExecutedAt.ToString("yyyy/MM/dd")</div>
+                                        <div class="text-muted small">@trade.ExecutedAt.ToString("HH:mm")</div>
+                                    </td>
+                                    <td>
+                                        <div class="fw-bold">@trade.Symbol</div>
+                                        <div class="text-muted small">@trade.NameAr</div>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge @typeBadge rounded-pill">@typeLabel</span>
+                                    </td>
+                                    <td class="text-center">@trade.Quantity.ToString("N0")</td>
+                                    <td class="text-center">@trade.Price.ToString("N3")</td>
+                                    <td class="text-center fw-semibold">@trade.TotalValue.ToString("N3") د.ك</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                @* Mobile cards *@
+                <div class="d-md-none p-3">
+                    @foreach (var trade in Model.RecentTrades)
+                    {
+                        var typeLabel = trade.Type == TradeType.Buy ? "شراء" : "بيع";
+                        var typeBadge = trade.Type == TradeType.Buy ? "bg-success" : "bg-danger";
+                        <div class="card mb-2 border">
+                            <div class="card-body py-2 px-3">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <div>
+                                        <span class="fw-bold">@trade.Symbol</span>
+                                        <span class="badge @typeBadge rounded-pill me-1">@typeLabel</span>
+                                    </div>
+                                    <span class="text-muted small">@trade.ExecutedAt.ToString("yyyy/MM/dd")</span>
+                                </div>
+                                <div class="row small text-muted">
+                                    <div class="col-6">الكمية: <strong>@trade.Quantity</strong></div>
+                                    <div class="col-6">السعر: <strong>@trade.Price.ToString("N3")</strong></div>
+                                    <div class="col-12">الإجمالي: <strong>@trade.TotalValue.ToString("N3") د.ك</strong></div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+
+</div>
+
+@* ===== RESET CONFIRMATION MODAL ===== *@
+@if (!isPublicView)
+{
+    <div class="modal fade" id="resetModal" tabindex="-1" aria-labelledby="resetModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header border-0">
+                    <h5 class="modal-title fw-bold" id="resetModalLabel">
+                        <i class="bi bi-exclamation-triangle-fill text-warning ms-2"></i>
+                        إعادة تعيين المحفظة
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="mb-0">هل أنت متأكد من إعادة تعيين المحفظة؟ سيتم حذف جميع المقتنيات والصفقات وإعادة الرصيد إلى @Model.InitialCapital.ToString("N3") د.ك.</p>
+                    <p class="text-danger small mt-2 mb-0"><i class="bi bi-info-circle ms-1"></i>هذا الإجراء لا يمكن التراجع عنه.</p>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-secondary rounded-pill" data-bs-dismiss="modal">إلغاء</button>
+                    <form asp-action="Reset" method="post" class="d-inline">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-danger rounded-pill">
+                            <i class="bi bi-arrow-counterclockwise ms-1"></i>إعادة تعيين
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@* ===== DISCLAIMER ===== *@
+<div class="text-center text-muted small mt-4 mb-3">
+    <i class="bi bi-info-circle ms-1"></i>
+    هذه محفظة افتراضية للتعلم والتدريب فقط. جميع الصفقات وهمية ولا تمثل تداولاً حقيقياً.
+</div>
