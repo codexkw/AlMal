@@ -4,11 +4,13 @@ using AlMal.Infrastructure.Data;
 using AlMal.Infrastructure.ExternalApis;
 using AlMal.Infrastructure.Identity;
 using AlMal.Infrastructure.Jobs;
+using AlMal.Infrastructure.Services;
 using Hangfire;
 using Hangfire.SqlServer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.HttpOverrides;
+using QuestPDF.Infrastructure;
 using Serilog;
 
 Log.Logger = new LoggerConfiguration()
@@ -118,6 +120,14 @@ try
     // WhatsApp service
     builder.Services.AddHttpClient<WhatsAppClient>();
     builder.Services.AddScoped<IWhatsAppService, WhatsAppClient>();
+
+    // Academy & Simulation services
+    builder.Services.AddScoped<ICourseService, CourseService>();
+    builder.Services.AddScoped<IQuizService, QuizService>();
+    builder.Services.AddScoped<ICertificateService, CertificateService>();
+
+    // QuestPDF license
+    QuestPDF.Settings.License = LicenseType.Community;
 
     // Services
     builder.Services.AddScoped<ITokenService, TokenService>();
