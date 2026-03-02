@@ -1,0 +1,21 @@
+@model AlMal.Web.ViewModels.Community.CommunityFeedViewModel
+
+@foreach (var post in Model.Posts)
+{
+    @await Html.PartialAsync("_PostCard", post)
+}
+
+@if (Model.Page < Model.TotalPages)
+{
+    <div class="text-center mt-3" id="load-more-container">
+        <button class="btn btn-outline-secondary rounded-pill px-4"
+                hx-get="/Community?tab=@Model.ActiveTab&page=@(Model.Page + 1)"
+                hx-target="#posts-feed"
+                hx-swap="beforeend"
+                hx-select=".post-card, #load-more-container"
+                hx-select-oob="#load-more-container">
+            <i class="bi bi-arrow-down-circle ms-1"></i>
+            تحميل المزيد
+        </button>
+    </div>
+}

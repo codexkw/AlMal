@@ -1,0 +1,417 @@
+@model AlMal.Web.ViewModels.Community.CommunityFeedViewModel
+@using AlMal.Domain.Enums
+@{
+    ViewData["Title"] = "المجتمع";
+    var isAuthenticated = User.Identity != null && User.Identity.IsAuthenticated;
+}
+
+<div class="container py-3">
+    <div class="row justify-content-center">
+        <div class="col-12 col-md-8 col-lg-6">
+
+            @* ===== Page Header ===== *@
+            <div class="d-flex align-items-center justify-content-between mb-3">
+                <h4 class="fw-bold mb-0">
+                    <i class="bi bi-people ms-1"></i>المجتمع
+                </h4>
+            </div>
+
+            @* ===== Tab Bar ===== *@
+            <ul class="nav nav-pills nav-fill mb-3 rounded p-1" style="background-color: var(--hover-bg);">
+                <li class="nav-item">
+                    <a class="nav-link rounded @(Model.ActiveTab == "general" ? "active" : "")"
+                       asp-controller="Community" asp-action="Index" asp-route-tab="general"
+                       style="@(Model.ActiveTab == "general" ? "background-color: var(--clr-primary); color: #fff;" : "color: var(--body-color);")">
+                        العام
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link rounded @(Model.ActiveTab == "following" ? "active" : "")"
+                       asp-controller="Community" asp-action="Index" asp-route-tab="following"
+                       style="@(Model.ActiveTab == "following" ? "background-color: var(--clr-primary); color: #fff;" : "color: var(--body-color);")">
+                        متابعاتي
+                    </a>
+                </li>
+            </ul>
+
+            @* ===== Create Post Form ===== *@
+            @if (isAuthenticated)
+            {
+                <div class="card border-0 shadow-sm mb-3" x-data="createPost()">
+                    <div class="card-body p-3">
+                        <form @@submit.prevent="submit()">
+                            @Html.AntiForgeryToken()
+                            <div class="mb-2">
+                                <textarea class="form-control border-0"
+                                          x-model="content"
+                                          placeholder="شارك رأيك مع المجتمع... استخدم $SYMBOL للإشارة لسهم"
+                                          rows="3"
+                                          maxlength="1000"
+                                          style="resize: none; background-color: var(--hover-bg);"
+                                          @@input="updateCounter()"></textarea>
+                            </div>
+                            <div class="d-flex align-items-center justify-content-between">
+                                <div class="small" :class="charCount > 950 ? 'text-danger' : 'text-muted'">
+                                    <span x-text="charCount">0</span> / 1000
+                                </div>
+                                <button type="submit"
+                                        class="btn btn-primary btn-sm rounded-pill px-4"
+                                        :disabled="posting || !content.trim() || charCount > 1000">
+                                    <template x-if="posting">
+                                        <span class="spinner-border spinner-border-sm ms-1" role="status"></span>
+                                    </template>
+                                    <template x-if="!posting">
+                                        <span><i class="bi bi-send ms-1"></i>نشر</span>
+                                    </template>
+                                </button>
+                            </div>
+                            @* Error message *@
+                            <div x-show="errorMsg" x-transition class="alert alert-danger alert-sm mt-2 mb-0 py-1 px-2 small">
+                                <span x-text="errorMsg"></span>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="card border-0 shadow-sm mb-3">
+                    <div class="card-body p-3 text-center">
+                        <p class="text-muted mb-2">سجل الدخول لمشاركة رأيك مع المجتمع</p>
+                        <a asp-controller="Account" asp-action="Login" asp-route-returnUrl="/Community"
+                           class="btn btn-primary btn-sm rounded-pill px-4">
+                            <i class="bi bi-box-arrow-in-left ms-1"></i>تسجيل الدخول
+                        </a>
+                    </div>
+                </div>
+            }
+
+            @* ===== Posts Feed ===== *@
+            <div id="posts-feed">
+                @if (Model.Posts.Count > 0)
+                {
+                    foreach (var post in Model.Posts)
+                    {
+                        @await Html.PartialAsync("_PostCard", post)
+                    }
+
+                    @* Load More Button *@
+                    @if (Model.Page < Model.TotalPages)
+                    {
+                        <div class="text-center mt-3" id="load-more-container">
+                            <button class="btn btn-outline-secondary rounded-pill px-4"
+                                    hx-get="/Community?tab=@Model.ActiveTab&page=@(Model.Page + 1)"
+                                    hx-target="#posts-feed"
+                                    hx-swap="beforeend"
+                                    hx-indicator="#load-more-spinner">
+                                <span id="load-more-spinner" class="spinner-border spinner-border-sm ms-1 htmx-indicator" role="status"></span>
+                                <i class="bi bi-arrow-down-circle ms-1"></i>
+                                تحميل المزيد
+                            </button>
+                        </div>
+                    }
+                }
+                else
+                {
+                    @* Empty State *@
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body p-4">
+                            <div class="empty-state">
+                                @if (Model.ActiveTab == "following")
+                                {
+                                    <i class="bi bi-person-plus empty-state-icon"></i>
+                                    <div class="empty-state-title">لا توجد منشورات</div>
+                                    <div class="empty-state-message">
+                                        لم تتابع أي شخص بعد. تابع محللين ومستثمرين لتظهر منشوراتهم هنا.
+                                    </div>
+                                    <div class="empty-state-action">
+                                        <a asp-controller="Community" asp-action="Index" asp-route-tab="general"
+                                           class="btn btn-primary btn-sm rounded-pill px-4">
+                                            تصفح المنشورات العامة
+                                        </a>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <i class="bi bi-chat-square-text empty-state-icon"></i>
+                                    <div class="empty-state-title">لا توجد منشورات بعد</div>
+                                    <div class="empty-state-message">
+                                        كن أول من يشارك رأيه في المجتمع!
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+
+        </div>
+    </div>
+</div>
+
+@* ===== Global Success Toast ===== *@
+<div x-data="{ show: false, msg: '' }"
+     x-on:toast-success.window="msg = $event.detail.message; show = true; setTimeout(() => show = false, 3000)"
+     x-show="show" x-transition
+     class="position-fixed bottom-0 start-50 translate-middle-x mb-3 p-2 px-3 rounded shadow"
+     style="z-index: 9999; background-color: var(--clr-positive); color: #fff; font-size: 0.85rem;">
+    <span x-text="msg"></span>
+</div>
+
+@section Styles {
+    <style>
+        .post-card .card-body {
+            padding: 1rem;
+        }
+
+        .post-content a.badge {
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        .post-content a.badge:hover {
+            opacity: 0.8;
+        }
+
+        .nav-pills .nav-link {
+            font-weight: 600;
+            font-size: 0.9rem;
+            padding: 0.4rem 1rem;
+            transition: all 0.2s ease;
+        }
+
+        .nav-pills .nav-link:not(.active):hover {
+            background-color: var(--hover-bg);
+        }
+
+        [x-cloak] {
+            display: none !important;
+        }
+    </style>
+}
+
+@section Scripts {
+    <script>
+        // Get anti-forgery token
+        function getAntiForgeryToken() {
+            const tokenEl = document.querySelector('input[name="__RequestVerificationToken"]');
+            return tokenEl ? tokenEl.value : '';
+        }
+
+        // Create Post Alpine component
+        function createPost() {
+            return {
+                content: '',
+                charCount: 0,
+                posting: false,
+                errorMsg: '',
+
+                updateCounter() {
+                    this.charCount = this.content.length;
+                },
+
+                async submit() {
+                    if (this.posting || !this.content.trim()) return;
+                    if (this.content.length > 1000) {
+                        this.errorMsg = 'محتوى المنشور يجب ألا يتجاوز 1000 حرف.';
+                        return;
+                    }
+
+                    this.posting = true;
+                    this.errorMsg = '';
+
+                    try {
+                        const formData = new FormData();
+                        formData.append('Content', this.content);
+                        formData.append('__RequestVerificationToken', getAntiForgeryToken());
+
+                        const response = await fetch('/Community/Create', {
+                            method: 'POST',
+                            body: formData
+                        });
+
+                        if (response.ok) {
+                            const data = await response.json();
+                            if (data.success) {
+                                this.content = '';
+                                this.charCount = 0;
+                                // Reload page to show new post
+                                window.location.reload();
+                            } else {
+                                this.errorMsg = data.error || 'حدث خطأ أثناء نشر المنشور.';
+                            }
+                        } else {
+                            this.errorMsg = 'حدث خطأ في الاتصال. حاول مرة أخرى.';
+                        }
+                    } catch (err) {
+                        console.error('Error creating post:', err);
+                        this.errorMsg = 'حدث خطأ غير متوقع. حاول مرة أخرى.';
+                    } finally {
+                        this.posting = false;
+                    }
+                }
+            };
+        }
+
+        // Post Card Alpine component
+        function postCard(postId, initialLiked, initialLikeCount) {
+            return {
+                postId: postId,
+                liked: initialLiked,
+                likeCount: initialLikeCount,
+                likeLoading: false,
+                showComments: false,
+                commentText: '',
+                commentLoading: false,
+                commentCount: parseInt(document.querySelector(`#post-${postId} [x-text="commentCount"]`)?.textContent || '0'),
+                toast: false,
+                toastMsg: '',
+
+                showToast(msg) {
+                    this.toastMsg = msg;
+                    this.toast = true;
+                    setTimeout(() => { this.toast = false; }, 3000);
+                },
+
+                async toggleLike() {
+                    if (this.likeLoading) return;
+                    this.likeLoading = true;
+
+                    try {
+                        const formData = new FormData();
+                        formData.append('postId', this.postId);
+                        formData.append('__RequestVerificationToken', getAntiForgeryToken());
+
+                        const response = await fetch('/Community/Like', {
+                            method: 'POST',
+                            body: formData
+                        });
+
+                        if (response.ok) {
+                            const data = await response.json();
+                            if (data.success) {
+                                this.liked = data.liked;
+                                this.likeCount = data.likeCount;
+                            }
+                        }
+                    } catch (err) {
+                        console.error('Error toggling like:', err);
+                    } finally {
+                        this.likeLoading = false;
+                    }
+                },
+
+                async submitComment() {
+                    if (this.commentLoading || !this.commentText.trim()) return;
+                    this.commentLoading = true;
+
+                    try {
+                        const formData = new FormData();
+                        formData.append('postId', this.postId);
+                        formData.append('content', this.commentText);
+                        formData.append('__RequestVerificationToken', getAntiForgeryToken());
+
+                        const response = await fetch('/Community/Comment', {
+                            method: 'POST',
+                            body: formData
+                        });
+
+                        if (response.ok) {
+                            const html = await response.text();
+                            // Check if it's a JSON error response
+                            try {
+                                const data = JSON.parse(html);
+                                if (!data.success) {
+                                    this.showToast(data.error || 'حدث خطأ.');
+                                    return;
+                                }
+                            } catch (e) {
+                                // It's HTML (the comment partial) — append it
+                                const commentsContainer = document.querySelector(`#comments-${this.postId}`);
+                                if (commentsContainer) {
+                                    commentsContainer.insertAdjacentHTML('afterbegin', html);
+                                }
+                                this.commentText = '';
+                                this.commentCount++;
+                            }
+                        }
+                    } catch (err) {
+                        console.error('Error submitting comment:', err);
+                    } finally {
+                        this.commentLoading = false;
+                    }
+                },
+
+                async deletePost() {
+                    if (!confirm('هل أنت متأكد من حذف هذا المنشور؟')) return;
+
+                    try {
+                        const formData = new FormData();
+                        formData.append('postId', this.postId);
+                        formData.append('__RequestVerificationToken', getAntiForgeryToken());
+
+                        const response = await fetch('/Community/Delete', {
+                            method: 'POST',
+                            body: formData
+                        });
+
+                        if (response.ok) {
+                            const data = await response.json();
+                            if (data.success) {
+                                const postEl = document.querySelector(`#post-${this.postId}`);
+                                if (postEl) {
+                                    postEl.style.transition = 'opacity 0.3s ease';
+                                    postEl.style.opacity = '0';
+                                    setTimeout(() => postEl.remove(), 300);
+                                }
+                                window.dispatchEvent(new CustomEvent('toast-success', {
+                                    detail: { message: 'تم حذف المنشور بنجاح.' }
+                                }));
+                            }
+                        }
+                    } catch (err) {
+                        console.error('Error deleting post:', err);
+                    }
+                },
+
+                async reportPost() {
+                    if (!confirm('هل تريد الإبلاغ عن هذا المنشور؟')) return;
+
+                    try {
+                        const formData = new FormData();
+                        formData.append('postId', this.postId);
+                        formData.append('__RequestVerificationToken', getAntiForgeryToken());
+
+                        const response = await fetch('/Community/Report', {
+                            method: 'POST',
+                            body: formData
+                        });
+
+                        if (response.ok) {
+                            const data = await response.json();
+                            if (data.success) {
+                                this.showToast('تم الإبلاغ عن المنشور. شكراً لك.');
+                            }
+                        }
+                    } catch (err) {
+                        console.error('Error reporting post:', err);
+                    }
+                },
+
+                sharePost() {
+                    const url = `${window.location.origin}/Community#post-${this.postId}`;
+                    if (navigator.share) {
+                        navigator.share({
+                            title: 'منشور في قناة المال',
+                            url: url
+                        }).catch(() => {});
+                    } else if (navigator.clipboard) {
+                        navigator.clipboard.writeText(url).then(() => {
+                            this.showToast('تم نسخ الرابط.');
+                        });
+                    }
+                }
+            };
+        }
+    </script>
+}

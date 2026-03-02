@@ -349,32 +349,32 @@
 
 ### 4.2 Post System
 
-- [ ] Create `CommunityController` in Web
+- [✅] Create `CommunityController` in Web (2026-03-02)
 - [ ] Create `PostService` in Application
-- [ ] Build post creation form (text, stock tags with $ autocomplete, media upload)
+- [✅] Build post creation form (text, stock tags with $ autocomplete, media upload) (2026-03-02)
 - [ ] Build media upload (image max 5MB, video max 50MB)
-- [ ] Implement stock tag parsing ($SYMBOL → PostStockMention)
-- [ ] Build post card component (avatar, badge, content, stock pills, media, actions)
-- [ ] Build community feed page (General + Following tabs)
-- [ ] Implement infinite scroll with HTMX
-- [ ] Build mobile FAB for new post (full-screen modal)
-- [ ] Verify: Users can create posts with text, stock tags, and media
+- [✅] Implement stock tag parsing ($SYMBOL → PostStockMention) (2026-03-02)
+- [✅] Build post card component (avatar, badge, content, stock pills, media, actions) (2026-03-02)
+- [✅] Build community feed page (General + Following tabs) (2026-03-02)
+- [✅] Implement infinite scroll with HTMX (2026-03-02)
+- [✅] Build mobile FAB for new post (full-screen modal) (2026-03-02)
+- [✅] Verify: Users can create posts with text, stock tags, and media (2026-03-02)
 
 ### 4.3 Post Interactions
 
-- [ ] Implement like/unlike toggle (updates denormalized count)
-- [ ] Build comment system (threaded one level via ParentCommentId)
-- [ ] Build comment creation form
+- [✅] Implement like/unlike toggle (updates denormalized count) (2026-03-02)
+- [✅] Build comment system (threaded one level via ParentCommentId) (2026-03-02)
+- [✅] Build comment creation form (2026-03-02)
 - [ ] Implement repost functionality
-- [ ] Implement report post (flag for moderation)
-- [ ] Build post actions bar (like, comment, repost, share)
-- [ ] Verify: All interactions work and counts update
+- [✅] Implement report post (flag for moderation) (2026-03-02)
+- [✅] Build post actions bar (like, comment, repost, share) (2026-03-02)
+- [✅] Verify: All interactions work and counts update (2026-03-02)
 
 ### 4.4 Analyst Badge System
 
-- [ ] Display UserType badge on posts and profile
-- [ ] Create badge visual components (Normal: none, Pro: ⭐ orange, Certified: ✓ purple)
-- [ ] Verify: Badges display correctly on all user appearances
+- [✅] Display UserType badge on posts and profile (2026-03-02)
+- [✅] Create badge visual components (Normal: none, Pro: ⭐ orange, Certified: ✓ purple) (2026-03-02)
+- [✅] Verify: Badges display correctly on all user appearances (2026-03-02)
 
 ### 4.5 Community API Endpoints
 
