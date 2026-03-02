@@ -116,6 +116,23 @@ try
     builder.Services.AddScoped<DailyMarketSummaryJob>();
 
     builder.Services.AddSignalR();
+
+    // Health checks
+    builder.Services.AddHealthChecks()
+        .AddSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")!);
+
+    // Output caching
+    builder.Services.AddOutputCache(options =>
+    {
+        options.AddBasePolicy(builder => builder.Expire(TimeSpan.FromSeconds(60)));
+    });
+
+    // Response compression
+    builder.Services.AddResponseCompression(options =>
+    {
+        options.EnableForHttps = true;
+    });
+
     builder.Services.AddControllersWithViews();
 
     var app = builder.Build();
@@ -144,9 +161,11 @@ try
         app.UseHsts();
     }
 
+    app.UseResponseCompression();
     app.UseHttpsRedirection();
     app.UseSerilogRequestLogging();
     app.UseRouting();
+    app.UseOutputCache();
 
     app.UseAuthentication();
     app.UseAuthorization();
@@ -205,6 +224,8 @@ try
             job => job.ExecuteAsync(CancellationToken.None),
             "45 9 * * 0-4"); // 9:45 AM UTC = 12:45 PM KWT, Sun-Thu
     }
+
+    app.MapHealthChecks("/health");
 
     app.MapStaticAssets();
 

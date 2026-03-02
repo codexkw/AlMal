@@ -1,0 +1,218 @@
+@model AlMal.Admin.ViewModels.AlertsAdminViewModel
+@{
+    ViewData["Title"] = "إدارة التنبيهات";
+}
+
+@* ملخص سريع *@
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-lg-3">
+        <div class="card text-center">
+            <div class="card-body py-3">
+                <div class="text-muted small mb-1">إجمالي التنبيهات</div>
+                <div class="fs-3 fw-bold">@Model.DeliveryStats.TotalAlerts</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="card text-center">
+            <div class="card-body py-3">
+                <div class="text-muted small mb-1">نشطة</div>
+                <div class="fs-3 fw-bold text-positive">@Model.DeliveryStats.ActiveAlerts</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="card text-center">
+            <div class="card-body py-3">
+                <div class="text-muted small mb-1">معطلة</div>
+                <div class="fs-3 fw-bold text-negative">@Model.DeliveryStats.InactiveAlerts</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="card text-center">
+            <div class="card-body py-3">
+                <div class="text-muted small mb-1">نسبة النجاح</div>
+                <div class="fs-3 fw-bold">@Model.DeliveryStats.SuccessRate%</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* الفلاتر *@
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" asp-action="Index" class="row g-3 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label">نوع التنبيه</label>
+                <select name="type" class="form-select">
+                    <option value="">الكل</option>
+                    <option value="0" selected="@(Model.TypeFilter.HasValue && (int)Model.TypeFilter.Value == 0 ? "selected" : null)">سعر</option>
+                    <option value="1" selected="@(Model.TypeFilter.HasValue && (int)Model.TypeFilter.Value == 1 ? "selected" : null)">إفصاح</option>
+                    <option value="2" selected="@(Model.TypeFilter.HasValue && (int)Model.TypeFilter.Value == 2 ? "selected" : null)">حجم تداول</option>
+                    <option value="3" selected="@(Model.TypeFilter.HasValue && (int)Model.TypeFilter.Value == 3 ? "selected" : null)">مؤشر</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">الحالة</label>
+                <select name="status" class="form-select">
+                    <option value="">الكل</option>
+                    <option value="active" selected="@(Model.StatusFilter == "active" ? "selected" : null)">نشط</option>
+                    <option value="inactive" selected="@(Model.StatusFilter == "inactive" ? "selected" : null)">معطل</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-search me-1"></i>بحث
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@* جدول التنبيهات *@
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span>قائمة التنبيهات (@Model.TotalCount)</span>
+        <a asp-action="Analytics" class="btn btn-sm btn-outline-primary">
+            <i class="bi bi-bar-chart me-1"></i>تحليلات التسليم
+        </a>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th style="width: 4%;">#</th>
+                        <th style="width: 14%;">المستخدم</th>
+                        <th style="width: 8%;">النوع</th>
+                        <th style="width: 12%;">السهم</th>
+                        <th style="width: 14%;">الشرط</th>
+                        <th style="width: 8%;">القناة</th>
+                        <th style="width: 8%;">الحالة</th>
+                        <th style="width: 8%;">التشغيل</th>
+                        <th style="width: 12%;">التاريخ</th>
+                        <th style="width: 12%;">الإجراءات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.Alerts.Count == 0)
+                    {
+                        <tr>
+                            <td colspan="10" class="text-center text-muted py-4">
+                                <i class="bi bi-bell-slash fs-3 d-block mb-2"></i>
+                                لا توجد تنبيهات
+                            </td>
+                        </tr>
+                    }
+                    @foreach (var alert in Model.Alerts)
+                    {
+                        <tr>
+                            <td>@alert.Id</td>
+                            <td>
+                                <div class="fw-semibold">@alert.UserDisplayName</div>
+                                <div class="text-muted small">@alert.UserEmail</div>
+                            </td>
+                            <td>
+                                <span class="badge bg-info text-dark">@alert.TypeArabic</span>
+                            </td>
+                            <td>
+                                @if (!string.IsNullOrEmpty(alert.StockSymbol))
+                                {
+                                    <span class="fw-semibold">@alert.StockSymbol</span>
+                                    <div class="text-muted small">@alert.StockNameAr</div>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">—</span>
+                                }
+                            </td>
+                            <td>
+                                @alert.Condition
+                                @if (alert.TargetValue.HasValue)
+                                {
+                                    <br /><span class="text-muted small">@alert.TargetValue.Value.ToString("N3")</span>
+                                }
+                            </td>
+                            <td>
+                                <span class="badge @(alert.Channel == AlMal.Domain.Enums.AlertChannel.WhatsApp ? "bg-success" : alert.Channel == AlMal.Domain.Enums.AlertChannel.Both ? "bg-primary" : "bg-secondary")">
+                                    @alert.ChannelArabic
+                                </span>
+                            </td>
+                            <td>
+                                @if (alert.IsActive)
+                                {
+                                    <span class="badge badge-active">نشط</span>
+                                }
+                                else
+                                {
+                                    <span class="badge badge-inactive">معطل</span>
+                                }
+                            </td>
+                            <td>@alert.TriggerCount مرة</td>
+                            <td>
+                                <span class="text-muted small">@alert.CreatedAt.ToString("yyyy-MM-dd HH:mm")</span>
+                                @if (alert.LastTriggered.HasValue)
+                                {
+                                    <br /><span class="text-muted small">آخر: @alert.LastTriggered.Value.ToString("MM-dd HH:mm")</span>
+                                }
+                            </td>
+                            <td>
+                                @if (alert.IsActive)
+                                {
+                                    <form asp-action="Deactivate" asp-route-id="@alert.Id" method="post" class="d-inline"
+                                          onsubmit="return confirm('هل أنت متأكد من تعطيل هذا التنبيه؟');">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" title="تعطيل">
+                                            <i class="bi bi-bell-slash me-1"></i>تعطيل
+                                        </button>
+                                    </form>
+                                }
+                                else
+                                {
+                                    <span class="text-muted small">معطل</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@* ترقيم الصفحات *@
+@if (Model.TotalPages > 1)
+{
+    <nav aria-label="ترقيم الصفحات" class="mt-4">
+        <ul class="pagination justify-content-center">
+            <li class="page-item @(Model.Page <= 1 ? "disabled" : "")">
+                <a class="page-link" asp-action="Index"
+                   asp-route-page="@(Model.Page - 1)"
+                   asp-route-type="@Model.TypeFilter"
+                   asp-route-status="@Model.StatusFilter">
+                    السابق
+                </a>
+            </li>
+            @for (var i = 1; i <= Model.TotalPages; i++)
+            {
+                <li class="page-item @(i == Model.Page ? "active" : "")">
+                    <a class="page-link" asp-action="Index"
+                       asp-route-page="@i"
+                       asp-route-type="@Model.TypeFilter"
+                       asp-route-status="@Model.StatusFilter">
+                        @i
+                    </a>
+                </li>
+            }
+            <li class="page-item @(Model.Page >= Model.TotalPages ? "disabled" : "")">
+                <a class="page-link" asp-action="Index"
+                   asp-route-page="@(Model.Page + 1)"
+                   asp-route-type="@Model.TypeFilter"
+                   asp-route-status="@Model.StatusFilter">
+                    التالي
+                </a>
+            </li>
+        </ul>
+    </nav>
+}

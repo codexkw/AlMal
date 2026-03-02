@@ -1,6 +1,7 @@
 using AlMal.Infrastructure.Data;
 using AlMal.Web.ViewModels.Market;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.OutputCaching;
 using Microsoft.EntityFrameworkCore;
 
 namespace AlMal.Web.Controllers;
@@ -16,6 +17,7 @@ public class MarketController : Controller
     }
 
     [HttpGet]
+    [OutputCache(Duration = 60)]
     public async Task<IActionResult> Index(
         string? search,
         string? sortBy,

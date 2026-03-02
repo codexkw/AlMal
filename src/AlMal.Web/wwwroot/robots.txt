@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://almal.codexkw.co/sitemap.xml
+
+# Disallow admin and API paths
+Disallow: /Account/
+Disallow: /api/
+Disallow: /hangfire/
+Disallow: /hubs/
