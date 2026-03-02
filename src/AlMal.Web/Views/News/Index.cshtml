@@ -234,7 +234,7 @@
                                 <div class="d-flex flex-wrap gap-1 mb-2">
                                     @foreach (var stock in article.RelatedStocks)
                                     {
-                                        <a asp-controller="Stock" asp-action="Index" asp-route-symbol="@stock.Symbol"
+                                        <a asp-controller="Stock" asp-action="Detail" asp-route-symbol="@stock.Symbol"
                                            class="badge bg-primary bg-opacity-10 text-primary text-decoration-none">
                                             @stock.Symbol
                                         </a>

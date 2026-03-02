@@ -297,6 +297,12 @@
                 </div>
                 @* Chart Container *@
                 <div id="stockChart" style="width: 100%; height: 400px;" class="rounded"></div>
+                <div id="stockChartNoData" style="display:none; height: 400px;" class="rounded d-flex align-items-center justify-content-center">
+                    <div class="text-center text-muted">
+                        <i class="bi bi-graph-up fs-1 mb-2 d-block"></i>
+                        <p class="mb-0">لا توجد بيانات أسعار متاحة حالياً</p>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -763,6 +769,9 @@
 
         function loadChartData(range) {
             const symbol = '@Model.Symbol';
+            const chartEl = document.getElementById('stockChart');
+            const noDataEl = document.getElementById('stockChartNoData');
+
             fetch(`/Stock/Prices?symbol=${encodeURIComponent(symbol)}&range=${encodeURIComponent(range)}`)
                 .then(response => {
                     if (!response.ok) throw new Error('Network error');
@@ -778,6 +787,15 @@
 
                         // Sort by time ascending
                         formatted.sort((a, b) => a.time.localeCompare(b.time));
+
+                        if (formatted.length === 0) {
+                            chartEl.style.display = 'none';
+                            noDataEl.style.display = 'flex';
+                            return;
+                        }
+
+                        chartEl.style.display = 'block';
+                        noDataEl.style.display = 'none';
 
                         areaSeries.setData(formatted);
                         chartInstance.timeScale().fitContent();
@@ -797,6 +815,8 @@
                 })
                 .catch(err => {
                     console.error('Failed to load chart data:', err);
+                    chartEl.style.display = 'none';
+                    noDataEl.style.display = 'flex';
                 });
         }
 

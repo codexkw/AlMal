@@ -125,7 +125,7 @@
             <div class="d-flex flex-wrap gap-1 mb-2">
                 @foreach (var mention in Model.StockMentions)
                 {
-                    <a asp-controller="Stock" asp-action="Index" asp-route-symbol="@mention.Symbol"
+                    <a asp-controller="Stock" asp-action="Detail" asp-route-symbol="@mention.Symbol"
                        class="badge bg-primary bg-opacity-10 text-decoration-none"
                        style="color: var(--clr-accent); font-size: 0.75rem;">
                         $@mention.Symbol @mention.NameAr
