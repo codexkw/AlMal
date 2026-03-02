@@ -1,0 +1,227 @@
+@model AlMal.Admin.ViewModels.QuizEditViewModel
+@{
+    ViewData["Title"] = "اختبار الدرس: " + Model.LessonTitleAr;
+    var hasQuiz = Model.QuizId > 0;
+}
+
+@* التنقل *@
+<div class="mb-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a asp-action="Index" class="text-decoration-none">الدورات</a></li>
+            <li class="breadcrumb-item"><a asp-action="Lessons" asp-route-id="@Model.CourseId" class="text-decoration-none">@Model.CourseTitleAr</a></li>
+            <li class="breadcrumb-item active">اختبار: @Model.LessonTitleAr</li>
+        </ol>
+    </nav>
+</div>
+
+@* إعدادات الاختبار *@
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="bi bi-gear me-2"></i>إعدادات الاختبار</h5>
+    </div>
+    <div class="card-body">
+        <form asp-action="QuizSave" method="post" class="row g-3 align-items-end">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="lessonId" value="@Model.LessonId" />
+
+            <div class="col-md-4">
+                <label class="form-label">نسبة النجاح (%)</label>
+                <input type="number" name="passingScore" class="form-control" dir="ltr"
+                       value="@Model.PassingScore" min="0" max="100" />
+            </div>
+            <div class="col-md-4">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-check-lg me-1"></i>@(hasQuiz ? "تحديث الإعدادات" : "إنشاء الاختبار")
+                </button>
+            </div>
+            <div class="col-md-4 text-muted small">
+                @if (hasQuiz)
+                {
+                    <span>عدد الأسئلة: @Model.Questions.Count</span>
+                }
+            </div>
+        </form>
+    </div>
+</div>
+
+@if (hasQuiz)
+{
+    @* إضافة سؤال جديد *@
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="bi bi-plus-circle me-2"></i>إضافة سؤال جديد</h5>
+        </div>
+        <div class="card-body">
+            <form asp-action="QuestionSave" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="QuizId" value="@Model.QuizId" />
+                <input type="hidden" name="Id" value="0" />
+
+                <div class="row g-3">
+                    <div class="col-12">
+                        <label class="form-label">نص السؤال <span class="text-danger">*</span></label>
+                        <textarea name="QuestionAr" class="form-control" rows="2" placeholder="اكتب نص السؤال هنا..." required></textarea>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">الخيار 1 <span class="text-danger">*</span></label>
+                        <input type="text" name="Option1" class="form-control" placeholder="الخيار الأول" required />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">الخيار 2 <span class="text-danger">*</span></label>
+                        <input type="text" name="Option2" class="form-control" placeholder="الخيار الثاني" required />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">الخيار 3 <span class="text-danger">*</span></label>
+                        <input type="text" name="Option3" class="form-control" placeholder="الخيار الثالث" required />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">الخيار 4 <span class="text-danger">*</span></label>
+                        <input type="text" name="Option4" class="form-control" placeholder="الخيار الرابع" required />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">الإجابة الصحيحة</label>
+                        <select name="CorrectIndex" class="form-select">
+                            <option value="0">الخيار 1</option>
+                            <option value="1">الخيار 2</option>
+                            <option value="2">الخيار 3</option>
+                            <option value="3">الخيار 4</option>
+                        </select>
+                    </div>
+                    <div class="col-md-8 d-flex align-items-end">
+                        <button type="submit" class="btn btn-accent">
+                            <i class="bi bi-plus-lg me-1"></i>إضافة السؤال
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    @* قائمة الأسئلة الحالية *@
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="bi bi-list-check me-2"></i>الأسئلة (@Model.Questions.Count)</h5>
+        </div>
+        <div class="card-body p-0">
+            @if (Model.Questions.Count == 0)
+            {
+                <div class="text-center text-muted py-4">
+                    لا توجد أسئلة بعد. أضف سؤالًا جديدًا أعلاه.
+                </div>
+            }
+            else
+            {
+                var questionIndex = 0;
+                foreach (var question in Model.Questions)
+                {
+                    questionIndex++;
+                    var correctOptions = new[] { question.Option1, question.Option2, question.Option3, question.Option4 };
+                    var correctAnswer = question.CorrectIndex >= 0 && question.CorrectIndex < correctOptions.Length
+                        ? correctOptions[question.CorrectIndex]
+                        : "غير محدد";
+
+                    <div class="border-bottom p-3">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div class="fw-semibold">
+                                <span class="text-muted">@questionIndex.</span> @question.QuestionAr
+                            </div>
+                            <form asp-action="QuestionDelete" asp-route-id="@question.Id" method="post"
+                                  onsubmit="return confirm('هل أنت متأكد من حذف هذا السؤال؟');" class="ms-2">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="btn btn-sm btn-outline-danger" title="حذف">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                        </div>
+                        <div class="row g-2 small">
+                            @for (int i = 0; i < 4; i++)
+                            {
+                                var optionText = i switch
+                                {
+                                    0 => question.Option1,
+                                    1 => question.Option2,
+                                    2 => question.Option3,
+                                    _ => question.Option4
+                                };
+                                var isCorrect = question.CorrectIndex == i;
+                                <div class="col-md-6">
+                                    <span class="@(isCorrect ? "text-positive fw-semibold" : "text-muted")">
+                                        <i class="bi @(isCorrect ? "bi-check-circle-fill" : "bi-circle") me-1"></i>
+                                        @optionText
+                                    </span>
+                                </div>
+                            }
+                        </div>
+
+                        @* نموذج تعديل السؤال (مخفي) *@
+                        <div class="mt-2">
+                            <button class="btn btn-sm btn-outline-secondary" type="button"
+                                    data-bs-toggle="collapse" data-bs-target="#editQuestion_@question.Id">
+                                <i class="bi bi-pencil me-1"></i>تعديل
+                            </button>
+                            <div class="collapse mt-2" id="editQuestion_@question.Id">
+                                <form asp-action="QuestionSave" method="post" class="card card-body">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="Id" value="@question.Id" />
+                                    <input type="hidden" name="QuizId" value="@Model.QuizId" />
+
+                                    <div class="row g-2">
+                                        <div class="col-12">
+                                            <label class="form-label small">نص السؤال</label>
+                                            <textarea name="QuestionAr" class="form-control form-control-sm" rows="2" required>@question.QuestionAr</textarea>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label small">الخيار 1</label>
+                                            <input type="text" name="Option1" class="form-control form-control-sm" value="@question.Option1" required />
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label small">الخيار 2</label>
+                                            <input type="text" name="Option2" class="form-control form-control-sm" value="@question.Option2" required />
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label small">الخيار 3</label>
+                                            <input type="text" name="Option3" class="form-control form-control-sm" value="@question.Option3" required />
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label small">الخيار 4</label>
+                                            <input type="text" name="Option4" class="form-control form-control-sm" value="@question.Option4" required />
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label small">الإجابة الصحيحة</label>
+                                            <select name="CorrectIndex" class="form-select form-select-sm">
+                                                <option value="0" selected="@(question.CorrectIndex == 0)">الخيار 1</option>
+                                                <option value="1" selected="@(question.CorrectIndex == 1)">الخيار 2</option>
+                                                <option value="2" selected="@(question.CorrectIndex == 2)">الخيار 3</option>
+                                                <option value="3" selected="@(question.CorrectIndex == 3)">الخيار 4</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-8 d-flex align-items-end">
+                                            <button type="submit" class="btn btn-sm btn-primary">
+                                                <i class="bi bi-check-lg me-1"></i>حفظ التعديل
+                                            </button>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                }
+            }
+        </div>
+    </div>
+}
+else
+{
+    <div class="alert alert-warning">
+        <i class="bi bi-info-circle me-1"></i>
+        يجب إنشاء الاختبار أولاً بالضغط على "إنشاء الاختبار" أعلاه، ثم يمكنك إضافة الأسئلة.
+    </div>
+}
+
+@* زر العودة *@
+<div class="mt-4">
+    <a asp-action="Lessons" asp-route-id="@Model.CourseId" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-right me-1"></i>العودة لقائمة الدروس
+    </a>
+</div>

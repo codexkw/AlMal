@@ -1,0 +1,85 @@
+@model AlMal.Admin.ViewModels.LessonEditViewModel
+@{
+    var isNew = Model.Id == 0;
+    ViewData["Title"] = isNew ? "إنشاء درس جديد" : "تعديل الدرس";
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">@(isNew ? "إنشاء درس جديد" : "تعديل الدرس: " + Model.TitleAr)</h5>
+                <div class="d-flex gap-2">
+                    <a asp-action="Lessons" asp-route-id="@Model.CourseId" class="btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-arrow-right me-1"></i>العودة للدروس
+                    </a>
+                </div>
+            </div>
+            <div class="card-body">
+                @if (!string.IsNullOrEmpty(Model.CourseTitleAr))
+                {
+                    <div class="alert alert-info py-2 mb-3">
+                        <i class="bi bi-book me-1"></i>الدورة: <strong>@Model.CourseTitleAr</strong>
+                    </div>
+                }
+
+                <form asp-action="LessonSave" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" asp-for="Id" />
+                    <input type="hidden" asp-for="CourseId" />
+
+                    <div class="row g-3">
+                        @* عنوان الدرس *@
+                        <div class="col-12">
+                            <label asp-for="TitleAr" class="form-label">عنوان الدرس <span class="text-danger">*</span></label>
+                            <input asp-for="TitleAr" class="form-control" placeholder="مثال: مقدمة في أساسيات البورصة" />
+                            <span asp-validation-for="TitleAr" class="text-danger small"></span>
+                        </div>
+
+                        @* محتوى الدرس *@
+                        <div class="col-12">
+                            <label asp-for="ContentHtml" class="form-label">محتوى الدرس (HTML)</label>
+                            <textarea asp-for="ContentHtml" class="form-control" rows="10"
+                                      placeholder="محتوى الدرس بصيغة HTML..."></textarea>
+                            <span asp-validation-for="ContentHtml" class="text-danger small"></span>
+                            <div class="form-text">يمكنك استخدام وسوم HTML لتنسيق المحتوى</div>
+                        </div>
+
+                        @* رابط الفيديو *@
+                        <div class="col-12">
+                            <label asp-for="VideoUrl" class="form-label">رابط الفيديو</label>
+                            <input asp-for="VideoUrl" class="form-control" dir="ltr" placeholder="https://youtube.com/watch?v=..." />
+                            <span asp-validation-for="VideoUrl" class="text-danger small"></span>
+                        </div>
+
+                        @* المدة *@
+                        <div class="col-md-6">
+                            <label asp-for="DurationMinutes" class="form-label">المدة (بالدقائق)</label>
+                            <input asp-for="DurationMinutes" class="form-control" type="number" dir="ltr" min="0" />
+                            <span asp-validation-for="DurationMinutes" class="text-danger small"></span>
+                        </div>
+
+                        @* الترتيب *@
+                        <div class="col-md-6">
+                            <label asp-for="SortOrder" class="form-label">الترتيب</label>
+                            <input asp-for="SortOrder" class="form-control" type="number" dir="ltr" min="0" />
+                            <span asp-validation-for="SortOrder" class="text-danger small"></span>
+                        </div>
+                    </div>
+
+                    @* أزرار الإجراءات *@
+                    <div class="d-flex gap-2 mt-4">
+                        <button type="submit" class="btn @(isNew ? "btn-accent" : "btn-primary")">
+                            <i class="bi @(isNew ? "bi-plus-lg" : "bi-check-lg") me-1"></i>@(isNew ? "إنشاء" : "حفظ")
+                        </button>
+                        <a asp-action="Lessons" asp-route-id="@Model.CourseId" class="btn btn-outline-secondary">إلغاء</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

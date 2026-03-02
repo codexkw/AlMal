@@ -1,0 +1,177 @@
+@model AlMal.Admin.ViewModels.CourseListViewModel
+@{
+    ViewData["Title"] = "إدارة الأكاديمية";
+}
+
+@* قسم العنوان والإحصائيات *@
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+    <div>
+        <span class="text-muted">إجمالي الدورات: @Model.TotalCount</span>
+    </div>
+    <div class="d-flex gap-2">
+        <a asp-action="Enrollments" class="btn btn-outline-primary">
+            <i class="bi bi-bar-chart-line me-1"></i>الإحصائيات
+        </a>
+        <a asp-action="Create" class="btn btn-accent">
+            <i class="bi bi-plus-lg me-1"></i>دورة جديدة
+        </a>
+    </div>
+</div>
+
+@* نموذج البحث والفلترة *@
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" asp-action="Index" class="row g-3 align-items-end">
+            <div class="col-md-5">
+                <label class="form-label">بحث</label>
+                <input type="text" name="search" class="form-control" placeholder="ابحث في عناوين الدورات..." value="@Model.SearchTerm" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">حالة النشر</label>
+                <select name="published" class="form-select">
+                    <option value="">الكل</option>
+                    <option value="true" selected="@(Model.PublishedFilter == "true")">منشورة</option>
+                    <option value="false" selected="@(Model.PublishedFilter == "false")">مسودة</option>
+                </select>
+            </div>
+            <div class="col-md-4 d-flex gap-2">
+                <button type="submit" class="btn btn-primary flex-grow-1">
+                    <i class="bi bi-search me-1"></i>بحث
+                </button>
+                <a asp-action="Index" class="btn btn-outline-secondary">
+                    <i class="bi bi-x-lg"></i>
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@* جدول الدورات *@
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th style="width: 5%;">#</th>
+                        <th style="width: 30%;">العنوان</th>
+                        <th>النوع</th>
+                        <th>الحالة</th>
+                        <th>الدروس</th>
+                        <th>المسجلين</th>
+                        <th>الإجراءات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.Items.Count == 0)
+                    {
+                        <tr>
+                            <td colspan="7" class="text-center text-muted py-4">لا توجد دورات</td>
+                        </tr>
+                    }
+                    @foreach (var item in Model.Items)
+                    {
+                        <tr>
+                            <td class="text-muted">@item.SortOrder</td>
+                            <td>
+                                <a asp-action="Edit" asp-route-id="@item.Id" class="text-decoration-none fw-semibold">
+                                    @item.TitleAr
+                                </a>
+                                <div class="text-muted small mt-1">
+                                    أنشئت: @item.CreatedAt.ToString("yyyy/MM/dd")
+                                </div>
+                            </td>
+                            <td>
+                                @if (item.IsFree)
+                                {
+                                    <span class="badge badge-active">مجانية</span>
+                                }
+                                else
+                                {
+                                    <span class="badge" style="background-color: rgba(79,14,94,0.15); color: var(--clr-primary);">
+                                        @(item.Price.HasValue ? item.Price.Value.ToString("N3") + " د.ك" : "مدفوعة")
+                                    </span>
+                                }
+                            </td>
+                            <td>
+                                @if (item.IsPublished)
+                                {
+                                    <span class="badge badge-active">
+                                        <i class="bi bi-check-circle me-1"></i>منشورة
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge badge-inactive">
+                                        <i class="bi bi-pencil me-1"></i>مسودة
+                                    </span>
+                                }
+                            </td>
+                            <td>
+                                <span class="text-muted">@item.LessonCount</span>
+                            </td>
+                            <td>
+                                <span class="text-muted">@item.EnrollmentCount</span>
+                            </td>
+                            <td>
+                                <div class="d-flex gap-1">
+                                    <a asp-action="Edit" asp-route-id="@item.Id"
+                                       class="btn btn-sm btn-outline-primary" title="تعديل">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <a asp-action="Lessons" asp-route-id="@item.Id"
+                                       class="btn btn-sm btn-outline-info" title="الدروس">
+                                        <i class="bi bi-list-ol"></i>
+                                    </a>
+                                    <form asp-action="Delete" asp-route-id="@item.Id" method="post"
+                                          onsubmit="return confirm('هل أنت متأكد من حذف هذه الدورة؟ سيتم حذف جميع الدروس والاختبارات المرتبطة بها.');">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" title="حذف">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@* ترقيم الصفحات *@
+@if (Model.TotalPages > 1)
+{
+    <nav aria-label="ترقيم الصفحات" class="mt-4">
+        <ul class="pagination justify-content-center">
+            <li class="page-item @(Model.Page <= 1 ? "disabled" : "")">
+                <a class="page-link" asp-action="Index"
+                   asp-route-search="@Model.SearchTerm"
+                   asp-route-published="@Model.PublishedFilter"
+                   asp-route-page="@(Model.Page - 1)">
+                    السابق
+                </a>
+            </li>
+            @for (var i = 1; i <= Model.TotalPages; i++)
+            {
+                <li class="page-item @(i == Model.Page ? "active" : "")">
+                    <a class="page-link" asp-action="Index"
+                       asp-route-search="@Model.SearchTerm"
+                       asp-route-published="@Model.PublishedFilter"
+                       asp-route-page="@i">
+                        @i
+                    </a>
+                </li>
+            }
+            <li class="page-item @(Model.Page >= Model.TotalPages ? "disabled" : "")">
+                <a class="page-link" asp-action="Index"
+                   asp-route-search="@Model.SearchTerm"
+                   asp-route-published="@Model.PublishedFilter"
+                   asp-route-page="@(Model.Page + 1)">
+                    التالي
+                </a>
+            </li>
+        </ul>
+    </nav>
+}
