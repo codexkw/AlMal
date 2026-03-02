@@ -803,8 +803,9 @@
                         key: 'cap',
                         groups: ['Symbol'],
                         backgroundColor: function(c) {
-                            if (!c.raw || !c.raw._data) return '#9ca3af';
-                            return getColor(c.raw._data.change);
+                            if (!c || !c.raw || !c.raw._data) return '#9ca3af';
+                            var ch = c.raw._data.change;
+                            return (ch !== undefined && ch !== null) ? getColor(ch) : '#9ca3af';
                         },
                         borderColor: 'rgba(255,255,255,0.5)',
                         borderWidth: 1,
@@ -818,8 +819,12 @@
                             formatter: function(c) {
                                 if (!c || !c.raw || !c.raw._data) return '';
                                 var d = c.raw._data;
-                                var sign = d.change >= 0 ? '+' : '';
-                                return [d.Symbol, sign + d.change.toFixed(2) + '%'];
+                                if (d.change === undefined || d.change === null) return d.symbol || d.Symbol || '';
+                                var sym = d.symbol || d.Symbol || '';
+                                var ch = Number(d.change);
+                                if (isNaN(ch)) return sym;
+                                var sign = ch >= 0 ? '+' : '';
+                                return [sym, sign + ch.toFixed(2) + '%'];
                             }
                         },
                         captions: { display: false }
@@ -833,14 +838,19 @@
                         tooltip: {
                             callbacks: {
                                 title: function(items) {
-                                    if (!items.length || !items[0].raw._data) return '';
-                                    return items[0].raw._data.Symbol + ' - ' + items[0].raw._data.NameAr;
+                                    if (!items.length || !items[0].raw || !items[0].raw._data) return '';
+                                    var d = items[0].raw._data;
+                                    var sym = d.symbol || d.Symbol || '';
+                                    var name = d.nameAr || d.NameAr || '';
+                                    return sym + (name ? ' - ' + name : '');
                                 },
                                 label: function(item) {
-                                    if (!item.raw._data) return '';
+                                    if (!item.raw || !item.raw._data) return '';
                                     var d = item.raw._data;
-                                    var sign = d.change >= 0 ? '+' : '';
-                                    return 'التغير: ' + sign + d.change.toFixed(2) + '%';
+                                    var ch = Number(d.change);
+                                    if (isNaN(ch)) return '';
+                                    var sign = ch >= 0 ? '+' : '';
+                                    return 'التغير: ' + sign + ch.toFixed(2) + '%';
                                 }
                             }
                         }
@@ -1153,6 +1163,11 @@
                         var result = await response.json();
                         if (result.success) {
                             stock.added = result.added;
+                            // Refresh the watchlist tab content
+                            var wlEl = document.getElementById('watchlistContent');
+                            if (wlEl && typeof htmx !== 'undefined') {
+                                htmx.ajax('GET', wlEl.getAttribute('hx-get'), { target: '#watchlistContent', swap: 'innerHTML' });
+                            }
                         }
                     } catch (e) {
                         console.error('Toggle watchlist error:', e);

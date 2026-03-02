@@ -1,3 +1,4 @@
+using AlMal.Application.Interfaces;
 using AlMal.Domain.Entities;
 using AlMal.Infrastructure.Data;
 using AlMal.Web.ViewModels.Stock;
@@ -9,10 +10,14 @@ namespace AlMal.Web.Controllers;
 public class StockController : Controller
 {
     private readonly AlMalDbContext _context;
+    private readonly IAiAnalysisService _aiService;
+    private readonly ILogger<StockController> _logger;
 
-    public StockController(AlMalDbContext context)
+    public StockController(AlMalDbContext context, IAiAnalysisService aiService, ILogger<StockController> logger)
     {
         _context = context;
+        _aiService = aiService;
+        _logger = logger;
     }
 
     [HttpGet("stock/{symbol}")]
@@ -190,5 +195,32 @@ public class StockController : Controller
             .ToListAsync();
 
         return Json(disclosures);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> ExplainMovement(string symbol, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(symbol))
+            return BadRequest(new { success = false, error = "الرمز مطلوب" });
+
+        try
+        {
+            var result = await _aiService.ExplainMovementAsync(symbol, ct);
+            return Json(new
+            {
+                success = true,
+                explanation = result.Explanation,
+                disclaimer = result.Disclaimer
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error explaining movement for {Symbol}", symbol);
+            return Json(new
+            {
+                success = false,
+                error = "عذراً، لا يمكن تحليل حركة السهم حالياً. يرجى المحاولة لاحقاً."
+            });
+        }
     }
 }

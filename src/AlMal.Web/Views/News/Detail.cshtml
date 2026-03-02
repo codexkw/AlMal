@@ -57,16 +57,32 @@
                         </div>
                     }
 
-                    @* Summary *@
+                    @* Summary / Content *@
                     @if (!string.IsNullOrWhiteSpace(Model.Summary))
                     {
                         <div class="mb-4">
-                            <h5 class="fw-bold mb-3" style="color: #4F0E5E;">
-                                <i class="bi bi-text-paragraph me-2"></i>الملخص
-                            </h5>
-                            <div class="p-3 rounded" style="background-color: var(--hover-bg); line-height: 1.8;">
+                            <div class="p-4 rounded" style="background-color: var(--hover-bg); line-height: 2; font-size: 1.05rem;">
                                 @Model.Summary
                             </div>
+                        </div>
+                    }
+
+                    @* Read Full Article at Source *@
+                    @if (!string.IsNullOrWhiteSpace(Model.SourceUrl))
+                    {
+                        <div class="mb-4 p-3 rounded border d-flex align-items-center justify-content-between"
+                             style="border-color: #4F0E5E !important; background-color: rgba(79, 14, 94, 0.03);">
+                            <div>
+                                <h6 class="fw-bold mb-1" style="color: #4F0E5E;">
+                                    <i class="bi bi-newspaper me-2"></i>قراءة الخبر كاملاً
+                                </h6>
+                                <p class="text-muted small mb-0">اضغط لقراءة التفاصيل الكاملة من المصدر الأصلي (@Model.Source)</p>
+                            </div>
+                            <a href="@Model.SourceUrl" target="_blank" rel="noopener noreferrer"
+                               class="btn btn-sm text-white rounded-pill flex-shrink-0 ms-3"
+                               style="background-color: #4F0E5E;">
+                                <i class="bi bi-box-arrow-up-left me-1"></i>المصدر
+                            </a>
                         </div>
                     }
 
@@ -83,17 +99,6 @@
                             <p class="text-muted small mt-2 mb-0">
                                 <i class="bi bi-info-circle me-1"></i>هذا تحليل تعليمي وليس نصيحة استثمارية
                             </p>
-                        </div>
-                    }
-
-                    @* Source Link *@
-                    @if (!string.IsNullOrWhiteSpace(Model.SourceUrl))
-                    {
-                        <div class="mt-4 pt-3 border-top" style="border-color: var(--card-border) !important;">
-                            <a href="@Model.SourceUrl" target="_blank" rel="noopener noreferrer"
-                               class="btn btn-outline-primary rounded-pill">
-                                <i class="bi bi-box-arrow-up-left me-1"></i>قراءة الخبر الأصلي
-                            </a>
                         </div>
                     }
                 </div>
