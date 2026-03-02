@@ -1,0 +1,411 @@
+@model AlMal.Web.ViewModels.News.NewsFeedViewModel
+@{
+    ViewData["Title"] = "الأخبار";
+}
+
+@* ======================================================================
+   Helper: Time Ago in Arabic
+   ====================================================================== *@
+@functions {
+    static string TimeAgoAr(DateTime publishedAt)
+    {
+        var diff = DateTime.UtcNow - publishedAt;
+
+        if (diff.TotalMinutes < 1)
+            return "الآن";
+        if (diff.TotalMinutes < 60)
+            return $"منذ {(int)diff.TotalMinutes} دقيقة";
+        if (diff.TotalHours < 24)
+            return $"منذ {(int)diff.TotalHours} ساعة";
+        if (diff.TotalDays < 30)
+            return $"منذ {(int)diff.TotalDays} يوم";
+        if (diff.TotalDays < 365)
+            return $"منذ {(int)(diff.TotalDays / 30)} شهر";
+
+        return $"منذ {(int)(diff.TotalDays / 365)} سنة";
+    }
+
+    static string SentimentTextAr(AlMal.Domain.Enums.Sentiment sentiment)
+    {
+        return sentiment switch
+        {
+            AlMal.Domain.Enums.Sentiment.Positive => "إيجابي",
+            AlMal.Domain.Enums.Sentiment.Negative => "سلبي",
+            _ => "محايد"
+        };
+    }
+
+    static string SentimentBadgeClass(AlMal.Domain.Enums.Sentiment sentiment)
+    {
+        return sentiment switch
+        {
+            AlMal.Domain.Enums.Sentiment.Positive => "bg-success",
+            AlMal.Domain.Enums.Sentiment.Negative => "bg-danger",
+            _ => "bg-secondary"
+        };
+    }
+}
+
+@* ======================================================================
+   Page Header
+   ====================================================================== *@
+<section class="mb-4">
+    <div class="d-flex align-items-center justify-content-between">
+        <div>
+            <h4 class="fw-bold mb-1">
+                <i class="bi bi-newspaper ms-2"></i>آخر الأخبار
+            </h4>
+            <p class="text-muted small mb-0">تابع آخر أخبار السوق والأسهم الكويتية</p>
+        </div>
+
+        @* Mobile filter toggle *@
+        <button class="btn btn-outline-secondary d-lg-none"
+                type="button"
+                data-bs-toggle="offcanvas"
+                data-bs-target="#filtersSidebar"
+                aria-controls="filtersSidebar">
+            <i class="bi bi-funnel ms-1"></i>تصفية
+        </button>
+    </div>
+</section>
+
+@* ======================================================================
+   3-Column Layout
+   ====================================================================== *@
+<div class="row g-4">
+
+    @* ========== LEFT SIDEBAR: Filters (col-lg-3) ========== *@
+    <div class="col-lg-3 d-none d-lg-block">
+        <div class="card border-0 shadow-sm sticky-top" style="top: 80px;">
+            <div class="card-body">
+                <h6 class="fw-bold mb-3">
+                    <i class="bi bi-funnel ms-1"></i>تصفية الأخبار
+                </h6>
+
+                <form method="get" asp-controller="News" asp-action="Index">
+                    @* Stock search *@
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">بحث بالسهم</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-transparent">
+                                <i class="bi bi-search"></i>
+                            </span>
+                            <input type="text"
+                                   name="stock"
+                                   class="form-control"
+                                   placeholder="رمز أو اسم السهم..."
+                                   value="@Model.StockFilter" />
+                        </div>
+                    </div>
+
+                    @* Sector dropdown *@
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">القطاع</label>
+                        <select name="sector" class="form-select">
+                            <option value="">جميع القطاعات</option>
+                            @foreach (var s in Model.Sectors)
+                            {
+                                <option value="@s.Id"
+                                        selected="@(Model.SectorFilter == s.Id ? "selected" : null)">
+                                    @s.NameAr
+                                </option>
+                            }
+                        </select>
+                    </div>
+
+                    @* Sentiment filter buttons *@
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">التوجه</label>
+                        <div x-data="{ selected: '@(Model.SentimentFilter ?? "")' }" class="d-flex flex-wrap gap-2">
+                            <input type="hidden" name="sentiment" :value="selected" />
+
+                            <button type="button"
+                                    class="btn btn-sm rounded-pill"
+                                    :class="selected === '' ? 'btn-dark' : 'btn-outline-secondary'"
+                                    @@click="selected = ''">
+                                الكل
+                            </button>
+                            <button type="button"
+                                    class="btn btn-sm rounded-pill"
+                                    :class="selected === 'Positive' ? 'btn-success' : 'btn-outline-success'"
+                                    @@click="selected = 'Positive'">
+                                <i class="bi bi-emoji-smile ms-1"></i>إيجابي
+                            </button>
+                            <button type="button"
+                                    class="btn btn-sm rounded-pill"
+                                    :class="selected === 'Negative' ? 'btn-danger' : 'btn-outline-danger'"
+                                    @@click="selected = 'Negative'">
+                                <i class="bi bi-emoji-frown ms-1"></i>سلبي
+                            </button>
+                            <button type="button"
+                                    class="btn btn-sm rounded-pill"
+                                    :class="selected === 'Neutral' ? 'btn-secondary' : 'btn-outline-secondary'"
+                                    @@click="selected = 'Neutral'">
+                                <i class="bi bi-emoji-neutral ms-1"></i>محايد
+                            </button>
+                        </div>
+                    </div>
+
+                    @* Apply button *@
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-funnel-fill ms-1"></i>تطبيق
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    @* ========== MAIN FEED (col-lg-6) ========== *@
+    <div class="col-lg-6">
+
+        @* Active filters display *@
+        @if (!string.IsNullOrWhiteSpace(Model.StockFilter) || Model.SectorFilter.HasValue || !string.IsNullOrWhiteSpace(Model.SentimentFilter))
+        {
+            <div class="d-flex flex-wrap gap-2 mb-3 align-items-center">
+                <span class="text-muted small">عوامل التصفية:</span>
+
+                @if (!string.IsNullOrWhiteSpace(Model.StockFilter))
+                {
+                    <span class="badge bg-primary bg-opacity-10 text-primary">
+                        <i class="bi bi-x ms-1"></i>سهم: @Model.StockFilter
+                    </span>
+                }
+                @if (Model.SectorFilter.HasValue)
+                {
+                    var sectorName = Model.Sectors.FirstOrDefault(s => s.Id == Model.SectorFilter.Value)?.NameAr ?? "";
+                    <span class="badge bg-info bg-opacity-10 text-info">
+                        <i class="bi bi-x ms-1"></i>قطاع: @sectorName
+                    </span>
+                }
+                @if (!string.IsNullOrWhiteSpace(Model.SentimentFilter))
+                {
+                    var sentText = Model.SentimentFilter switch
+                    {
+                        "Positive" => "إيجابي",
+                        "Negative" => "سلبي",
+                        "Neutral" => "محايد",
+                        _ => Model.SentimentFilter
+                    };
+                    <span class="badge bg-warning bg-opacity-10 text-warning">
+                        <i class="bi bi-x ms-1"></i>توجه: @sentText
+                    </span>
+                }
+
+                <a asp-controller="News" asp-action="Index" class="btn btn-sm btn-outline-secondary rounded-pill">
+                    <i class="bi bi-x-circle ms-1"></i>مسح الكل
+                </a>
+            </div>
+        }
+
+        @* Article cards *@
+        <div id="news-feed">
+            @if (Model.Articles.Any())
+            {
+                @foreach (var article in Model.Articles)
+                {
+                    var badgeClass = SentimentBadgeClass(article.Sentiment);
+                    var sentimentText = SentimentTextAr(article.Sentiment);
+                    var timeAgo = TimeAgoAr(article.PublishedAt);
+
+                    <div class="card border-0 shadow-sm mb-3">
+                        <div class="card-body">
+                            @* Header: Source + Sentiment + Time *@
+                            <div class="d-flex align-items-center gap-2 mb-2">
+                                <span class="badge bg-dark bg-opacity-10 text-dark">@article.Source</span>
+                                <span class="badge @badgeClass">@sentimentText</span>
+                                <small class="text-muted ms-auto">@timeAgo</small>
+                            </div>
+
+                            @* Title *@
+                            <h6 class="fw-bold mb-2">@article.TitleAr</h6>
+
+                            @* Summary *@
+                            @if (!string.IsNullOrWhiteSpace(article.Summary))
+                            {
+                                var truncated = article.Summary.Length > 200
+                                    ? article.Summary.Substring(0, 200) + "..."
+                                    : article.Summary;
+                                <p class="text-muted small mb-2">@truncated</p>
+                            }
+
+                            @* Related stock tags *@
+                            @if (article.RelatedStocks.Any())
+                            {
+                                <div class="d-flex flex-wrap gap-1 mb-2">
+                                    @foreach (var stock in article.RelatedStocks)
+                                    {
+                                        <a asp-controller="Stock" asp-action="Index" asp-route-symbol="@stock.Symbol"
+                                           class="badge bg-primary bg-opacity-10 text-primary text-decoration-none">
+                                            @stock.Symbol
+                                        </a>
+                                    }
+                                </div>
+                            }
+
+                            @* Source link *@
+                            @if (!string.IsNullOrWhiteSpace(article.SourceUrl))
+                            {
+                                <a href="@article.SourceUrl"
+                                   target="_blank"
+                                   rel="noopener noreferrer"
+                                   class="btn btn-sm btn-outline-secondary rounded-pill">
+                                    المصدر <i class="bi bi-box-arrow-up-left"></i>
+                                </a>
+                            }
+                        </div>
+                    </div>
+                }
+
+                @* HTMX Load More *@
+                @if (Model.Page < Model.TotalPages)
+                {
+                    var nextPage = Model.Page + 1;
+                    var feedUrl = Url.Action("Feed", "News", new
+                    {
+                        stock = Model.StockFilter,
+                        sector = Model.SectorFilter,
+                        sentiment = Model.SentimentFilter,
+                        page = nextPage
+                    });
+                    <div id="load-more-trigger"
+                         hx-get="@feedUrl"
+                         hx-trigger="revealed"
+                         hx-target="#news-feed"
+                         hx-swap="beforeend"
+                         class="text-center py-3">
+                        <div class="spinner-border spinner-border-sm text-primary" role="status">
+                            <span class="visually-hidden">جاري التحميل...</span>
+                        </div>
+                        <span class="text-muted small me-2">جاري تحميل المزيد...</span>
+                    </div>
+                }
+            }
+            else
+            {
+                <div class="text-center py-5">
+                    <i class="bi bi-newspaper display-4 text-muted"></i>
+                    <p class="text-muted mt-3">لا توجد أخبار حالياً</p>
+                    @if (!string.IsNullOrWhiteSpace(Model.StockFilter) || Model.SectorFilter.HasValue || !string.IsNullOrWhiteSpace(Model.SentimentFilter))
+                    {
+                        <a asp-controller="News" asp-action="Index" class="btn btn-outline-primary btn-sm">
+                            <i class="bi bi-arrow-clockwise ms-1"></i>عرض جميع الأخبار
+                        </a>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+
+    @* ========== RIGHT SIDEBAR: Trending (col-lg-3) ========== *@
+    <div class="col-lg-3 d-none d-lg-block">
+
+        @* Latest Disclosures widget *@
+        <div class="card border-0 shadow-sm mb-3 sticky-top" style="top: 80px;">
+            <div class="card-body">
+                <h6 class="fw-bold mb-3">
+                    <i class="bi bi-file-earmark-text ms-1"></i>أحدث الإفصاحات
+                </h6>
+                <div class="text-center py-4">
+                    <i class="bi bi-file-earmark-text display-6 text-muted opacity-50"></i>
+                    <p class="text-muted small mt-2">قريباً...</p>
+                </div>
+            </div>
+        </div>
+
+        @* Trending Stocks widget *@
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <h6 class="fw-bold mb-3">
+                    <i class="bi bi-graph-up-arrow ms-1"></i>الأسهم الرائجة
+                </h6>
+                <div class="text-center py-4">
+                    <i class="bi bi-graph-up-arrow display-6 text-muted opacity-50"></i>
+                    <p class="text-muted small mt-2">قريباً...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* ======================================================================
+   Mobile Offcanvas Filters
+   ====================================================================== *@
+<div class="offcanvas offcanvas-end" tabindex="-1" id="filtersSidebar" aria-labelledby="filtersSidebarLabel">
+    <div class="offcanvas-header">
+        <h5 class="offcanvas-title fw-bold" id="filtersSidebarLabel">
+            <i class="bi bi-funnel ms-1"></i>تصفية الأخبار
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="إغلاق"></button>
+    </div>
+    <div class="offcanvas-body">
+        <form method="get" asp-controller="News" asp-action="Index">
+            @* Stock search *@
+            <div class="mb-3">
+                <label class="form-label small fw-semibold">بحث بالسهم</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-transparent">
+                        <i class="bi bi-search"></i>
+                    </span>
+                    <input type="text"
+                           name="stock"
+                           class="form-control"
+                           placeholder="رمز أو اسم السهم..."
+                           value="@Model.StockFilter" />
+                </div>
+            </div>
+
+            @* Sector dropdown *@
+            <div class="mb-3">
+                <label class="form-label small fw-semibold">القطاع</label>
+                <select name="sector" class="form-select">
+                    <option value="">جميع القطاعات</option>
+                    @foreach (var s in Model.Sectors)
+                    {
+                        <option value="@s.Id"
+                                selected="@(Model.SectorFilter == s.Id ? "selected" : null)">
+                            @s.NameAr
+                        </option>
+                    }
+                </select>
+            </div>
+
+            @* Sentiment filter buttons *@
+            <div class="mb-3">
+                <label class="form-label small fw-semibold">التوجه</label>
+                <div x-data="{ selected: '@(Model.SentimentFilter ?? "")' }" class="d-flex flex-wrap gap-2">
+                    <input type="hidden" name="sentiment" :value="selected" />
+
+                    <button type="button"
+                            class="btn btn-sm rounded-pill"
+                            :class="selected === '' ? 'btn-dark' : 'btn-outline-secondary'"
+                            @@click="selected = ''">
+                        الكل
+                    </button>
+                    <button type="button"
+                            class="btn btn-sm rounded-pill"
+                            :class="selected === 'Positive' ? 'btn-success' : 'btn-outline-success'"
+                            @@click="selected = 'Positive'">
+                        <i class="bi bi-emoji-smile ms-1"></i>إيجابي
+                    </button>
+                    <button type="button"
+                            class="btn btn-sm rounded-pill"
+                            :class="selected === 'Negative' ? 'btn-danger' : 'btn-outline-danger'"
+                            @@click="selected = 'Negative'">
+                        <i class="bi bi-emoji-frown ms-1"></i>سلبي
+                    </button>
+                    <button type="button"
+                            class="btn btn-sm rounded-pill"
+                            :class="selected === 'Neutral' ? 'btn-secondary' : 'btn-outline-secondary'"
+                            @@click="selected = 'Neutral'">
+                        <i class="bi bi-emoji-neutral ms-1"></i>محايد
+                    </button>
+                </div>
+            </div>
+
+            @* Apply button *@
+            <button type="submit" class="btn btn-primary w-100">
+                <i class="bi bi-funnel-fill ms-1"></i>تطبيق
+            </button>
+        </form>
+    </div>
+</div>

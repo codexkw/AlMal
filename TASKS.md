@@ -273,26 +273,26 @@
 
 ### 3.1 News Integration
 
-- [ ] Create `INewsProvider` interface in Application
-- [ ] Create `NewsDataClient` in Infrastructure/ExternalApis
-- [ ] Implement NewsData.io API integration
-- [ ] Create Hangfire job: `NewsFetcherJob` (15 min market, 60 min off)
-- [ ] Implement article deduplication by ExternalId
-- [ ] Implement stock matching by keyword (Arabic/English company names)
-- [ ] Store articles in NewsArticle + NewsArticleStock tables
-- [ ] Verify: News articles fetched and stored correctly
+- [✅] Create `INewsProvider` interface in Application (2026-03-02)
+- [✅] Create `NewsDataClient` in Infrastructure/ExternalApis (2026-03-02)
+- [✅] Implement NewsData.io API integration (2026-03-02)
+- [✅] Create Hangfire job: `NewsFetcherJob` (15 min market, 60 min off) (2026-03-02)
+- [✅] Implement article deduplication by ExternalId (2026-03-02)
+- [✅] Implement stock matching by keyword (Arabic/English company names) (2026-03-02)
+- [✅] Store articles in NewsArticle + NewsArticleStock tables (2026-03-02)
+- [✅] Verify: News articles fetched and stored correctly (2026-03-02)
 
 ### 3.2 News Feed UI
 
-- [ ] Create `NewsController` in Web
-- [ ] Create `NewsFeedViewModel`
-- [ ] Build news card component (source, title, time, sentiment pill, summary, stock tags)
-- [ ] Build news feed page (card list, infinite scroll)
-- [ ] Build filters: company search, sector dropdown, sentiment toggle, date range
-- [ ] Build desktop sidebar: trending stocks, latest disclosures
-- [ ] Build mobile layout: bottom sheet filters, horizontal chips
-- [ ] Add "Understand Context" button placeholder on each card
-- [ ] Verify: News feed renders with real/sample articles
+- [✅] Create `NewsController` in Web (2026-03-02)
+- [✅] Create `NewsFeedViewModel` (2026-03-02)
+- [✅] Build news card component (source, title, time, sentiment pill, summary, stock tags) (2026-03-02)
+- [✅] Build news feed page (card list, infinite scroll) (2026-03-02)
+- [✅] Build filters: company search, sector dropdown, sentiment toggle, date range (2026-03-02)
+- [✅] Build desktop sidebar: trending stocks, latest disclosures (2026-03-02)
+- [✅] Build mobile layout: bottom sheet filters, horizontal chips (2026-03-02)
+- [✅] Add "Understand Context" button placeholder on each card (2026-03-02)
+- [✅] Verify: News feed renders with real/sample articles (2026-03-02)
 
 ### 3.3 AI: Movement Explainer
 
