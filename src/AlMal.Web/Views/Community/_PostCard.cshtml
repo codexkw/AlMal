@@ -1,0 +1,247 @@
+@model AlMal.Web.ViewModels.Community.PostCardViewModel
+@using AlMal.Domain.Enums
+@{
+    var recentCommentsCount = 3;
+
+    var initials = "";
+    if (!string.IsNullOrWhiteSpace(Model.UserDisplayName))
+    {
+        var parts = Model.UserDisplayName.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        initials = parts.Length >= 2
+            ? $"{parts[0][0]}{parts[1][0]}"
+            : Model.UserDisplayName[..Math.Min(2, Model.UserDisplayName.Length)];
+    }
+
+    var timeAgo = "";
+    var diff = DateTime.UtcNow - Model.CreatedAt;
+    if (diff.TotalMinutes < 1)
+        timeAgo = "الآن";
+    else if (diff.TotalMinutes < 60)
+        timeAgo = $"منذ {(int)diff.TotalMinutes} دقيقة";
+    else if (diff.TotalHours < 24)
+        timeAgo = $"منذ {(int)diff.TotalHours} ساعة";
+    else if (diff.TotalDays < 30)
+        timeAgo = $"منذ {(int)diff.TotalDays} يوم";
+    else if (diff.TotalDays < 365)
+        timeAgo = $"منذ {(int)(diff.TotalDays / 30)} شهر";
+    else
+        timeAgo = $"منذ {(int)(diff.TotalDays / 365)} سنة";
+
+    @* Build content with highlighted stock mentions *@
+    var contentHtml = System.Text.RegularExpressions.Regex.Replace(
+        System.Net.WebUtility.HtmlEncode(Model.Content),
+        @"\$([A-Z]+)",
+        match =>
+        {
+            var symbol = match.Groups[1].Value;
+            var mention = Model.StockMentions.FirstOrDefault(m => m.Symbol == symbol);
+            if (mention != null)
+            {
+                return $"<a href=\"/Stock/{symbol}\" class=\"badge bg-primary bg-opacity-25 text-decoration-none\" style=\"color: var(--clr-accent);\">${symbol} {mention.NameAr}</a>";
+            }
+            return match.Value;
+        }
+    );
+}
+
+<div class="card border-0 shadow-sm mb-3 post-card" id="post-@Model.Id"
+     x-data="postCard(@Model.Id, @(Model.IsLikedByCurrentUser ? "true" : "false"), @Model.LikeCount)">
+    <div class="card-body p-3">
+
+        @* ===== Post Header: Avatar + Name + Badge + Time + Actions ===== *@
+        <div class="d-flex align-items-start mb-2">
+            @* Avatar *@
+            <a asp-controller="Profile" asp-action="Index" asp-route-id="@Model.UserId" class="text-decoration-none flex-shrink-0">
+                @if (!string.IsNullOrWhiteSpace(Model.UserAvatarUrl))
+                {
+                    <img src="@Model.UserAvatarUrl"
+                         alt="@Model.UserDisplayName"
+                         class="rounded-circle"
+                         width="44" height="44"
+                         style="object-fit: cover; border: 2px solid var(--card-border);" />
+                }
+                else
+                {
+                    <div class="rounded-circle d-inline-flex align-items-center justify-content-center"
+                         style="width: 44px; height: 44px; background-color: var(--clr-primary); color: #fff; font-weight: 700; font-size: 0.85rem; border: 2px solid var(--card-border);">
+                        @initials
+                    </div>
+                }
+            </a>
+
+            @* Name + Badge + Time *@
+            <div class="me-2 flex-grow-1" style="min-width: 0;">
+                <div class="d-flex align-items-center flex-wrap gap-1">
+                    <a asp-controller="Profile" asp-action="Index" asp-route-id="@Model.UserId"
+                       class="fw-bold text-body text-decoration-none">
+                        @Model.UserDisplayName
+                    </a>
+                    @if (Model.UserType == UserType.ProAnalyst)
+                    {
+                        <span class="badge bg-warning text-dark"><i class="bi bi-star-fill me-1"></i>محلل متميز</span>
+                    }
+                    else if (Model.UserType == UserType.CertifiedAnalyst)
+                    {
+                        <span class="badge" style="background-color: var(--clr-primary);"><i class="bi bi-patch-check-fill me-1"></i>محلل معتمد</span>
+                    }
+                </div>
+                <div class="text-muted small">@timeAgo</div>
+            </div>
+
+            @* Post Menu (dropdown) *@
+            <div class="dropdown">
+                <button class="btn btn-link text-muted p-0" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-three-dots"></i>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-start">
+                    @if (User.Identity != null && User.Identity.IsAuthenticated && User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value == Model.UserId)
+                    {
+                        <li>
+                            <button class="dropdown-item text-danger" type="button" @@click="deletePost()">
+                                <i class="bi bi-trash ms-1"></i>حذف المنشور
+                            </button>
+                        </li>
+                    }
+                    else if (User.Identity != null && User.Identity.IsAuthenticated)
+                    {
+                        <li>
+                            <button class="dropdown-item" type="button" @@click="reportPost()">
+                                <i class="bi bi-flag ms-1"></i>الإبلاغ عن المنشور
+                            </button>
+                        </li>
+                    }
+                </ul>
+            </div>
+        </div>
+
+        @* ===== Post Content ===== *@
+        <div class="post-content mb-2" style="white-space: pre-wrap; word-break: break-word; line-height: 1.7;">
+            @Html.Raw(contentHtml)
+        </div>
+
+        @* ===== Stock Mention Tags ===== *@
+        @if (Model.StockMentions.Count > 0)
+        {
+            <div class="d-flex flex-wrap gap-1 mb-2">
+                @foreach (var mention in Model.StockMentions)
+                {
+                    <a asp-controller="Stock" asp-action="Index" asp-route-symbol="@mention.Symbol"
+                       class="badge bg-primary bg-opacity-10 text-decoration-none"
+                       style="color: var(--clr-accent); font-size: 0.75rem;">
+                        $@mention.Symbol @mention.NameAr
+                    </a>
+                }
+            </div>
+        }
+
+        @* ===== Image Preview ===== *@
+        @if (!string.IsNullOrWhiteSpace(Model.ImageUrl))
+        {
+            <div class="mb-2 rounded overflow-hidden" style="max-height: 400px;">
+                <img src="@Model.ImageUrl" alt="صورة المنشور" class="img-fluid w-100" style="object-fit: cover;" />
+            </div>
+        }
+
+        @* ===== Video Preview ===== *@
+        @if (!string.IsNullOrWhiteSpace(Model.VideoUrl))
+        {
+            <div class="mb-2 rounded overflow-hidden">
+                <video src="@Model.VideoUrl" controls class="w-100" style="max-height: 400px;">
+                    متصفحك لا يدعم عرض الفيديو.
+                </video>
+            </div>
+        }
+
+        @* ===== Action Bar ===== *@
+        <div class="d-flex align-items-center border-top pt-2 mt-1" style="border-color: var(--card-border) !important;">
+            @* Like Button *@
+            <button class="btn btn-sm btn-link text-decoration-none p-1 px-2"
+                    :class="liked ? 'text-danger' : 'text-muted'"
+                    @@click="toggleLike()"
+                    :disabled="likeLoading"
+                    title="إعجاب">
+                <i class="bi" :class="liked ? 'bi-heart-fill' : 'bi-heart'"></i>
+                <span class="small me-1" x-text="likeCount">@Model.LikeCount</span>
+            </button>
+
+            @* Comment Button *@
+            <button class="btn btn-sm btn-link text-muted text-decoration-none p-1 px-2"
+                    @@click="showComments = !showComments"
+                    title="تعليق">
+                <i class="bi bi-chat"></i>
+                <span class="small me-1" x-text="commentCount">@Model.CommentCount</span>
+            </button>
+
+            @* Repost Button *@
+            <button class="btn btn-sm btn-link text-muted text-decoration-none p-1 px-2"
+                    title="إعادة نشر">
+                <i class="bi bi-repeat"></i>
+                <span class="small me-1">@Model.RepostCount</span>
+            </button>
+
+            @* Share Button *@
+            <button class="btn btn-sm btn-link text-muted text-decoration-none p-1 px-2 ms-auto"
+                    @@click="sharePost()"
+                    title="مشاركة">
+                <i class="bi bi-share"></i>
+            </button>
+        </div>
+
+        @* ===== Comments Section ===== *@
+        <div x-show="showComments" x-transition>
+            @* Comment List *@
+            <div class="mt-2" id="comments-@Model.Id">
+                @if (Model.RecentComments.Count > 0)
+                {
+                    foreach (var comment in Model.RecentComments)
+                    {
+                        @await Html.PartialAsync("_Comment", comment)
+                    }
+                }
+
+                @if (Model.CommentCount > recentCommentsCount)
+                {
+                    <div class="text-center mt-2">
+                        <button class="btn btn-sm btn-link text-muted text-decoration-none"
+                                hx-get="/Community/Comments/@Model.Id?page=1"
+                                hx-target="#comments-@Model.Id"
+                                hx-swap="innerHTML">
+                            عرض المزيد (@(Model.CommentCount - recentCommentsCount) تعليق آخر)
+                        </button>
+                    </div>
+                }
+            </div>
+
+            @* Comment Input *@
+            @if (User.Identity != null && User.Identity.IsAuthenticated)
+            {
+                <div class="mt-2 d-flex align-items-start gap-2">
+                    <textarea class="form-control form-control-sm"
+                              x-model="commentText"
+                              placeholder="أضف تعليقاً..."
+                              rows="1"
+                              maxlength="500"
+                              style="resize: none; min-height: 38px;"
+                              @@keydown.enter.prevent="submitComment()"></textarea>
+                    <button class="btn btn-sm btn-primary flex-shrink-0"
+                            @@click="submitComment()"
+                            :disabled="commentLoading || !commentText.trim()">
+                        <template x-if="commentLoading">
+                            <span class="spinner-border spinner-border-sm" role="status"></span>
+                        </template>
+                        <template x-if="!commentLoading">
+                            <i class="bi bi-send"></i>
+                        </template>
+                    </button>
+                </div>
+            }
+        </div>
+    </div>
+
+    @* ===== Toast notification ===== *@
+    <div x-show="toast" x-transition
+         class="position-fixed bottom-0 start-50 translate-middle-x mb-3 p-2 px-3 rounded shadow"
+         style="z-index: 9999; background-color: var(--clr-positive); color: #fff; font-size: 0.85rem;">
+        <span x-text="toastMsg"></span>
+    </div>
+</div>

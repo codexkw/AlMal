@@ -1,0 +1,23 @@
+@model List<AlMal.Web.ViewModels.Community.CommentViewModel>
+@{
+    var postId = (long)ViewBag.PostId;
+    var page = (int)ViewBag.Page;
+    var totalPages = (int)ViewBag.TotalPages;
+}
+
+@foreach (var comment in Model)
+{
+    @await Html.PartialAsync("_Comment", comment)
+}
+
+@if (page < totalPages)
+{
+    <div class="text-center mt-2">
+        <button class="btn btn-sm btn-link text-muted text-decoration-none"
+                hx-get="/Community/Comments/@postId?page=@(page + 1)"
+                hx-target="closest div"
+                hx-swap="outerHTML">
+            تحميل المزيد...
+        </button>
+    </div>
+}
