@@ -96,6 +96,9 @@ try
     builder.Services.AddHttpClient<NewsDataClient>();
     builder.Services.AddScoped<INewsProvider, NewsDataClient>();
 
+    // AI service
+    builder.Services.AddScoped<IAiAnalysisService, ClaudeAiService>();
+
     // Services
     builder.Services.AddScoped<ITokenService, TokenService>();
     builder.Services.AddScoped<MarketDataScraperJob>();
@@ -103,6 +106,8 @@ try
     builder.Services.AddScoped<DisclosureScraperJob>();
     builder.Services.AddScoped<StockPriceHistoryJob>();
     builder.Services.AddScoped<NewsFetcherJob>();
+    builder.Services.AddScoped<AiDisclosureProcessorJob>();
+    builder.Services.AddScoped<AiNewsProcessorJob>();
 
     builder.Services.AddSignalR();
     builder.Services.AddControllersWithViews();
@@ -173,6 +178,16 @@ try
             "news-fetcher",
             job => job.ExecuteAsync(CancellationToken.None),
             "*/15 * * * *"); // Every 15 minutes
+
+        RecurringJob.AddOrUpdate<AiDisclosureProcessorJob>(
+            "ai-disclosure-processor",
+            job => job.ExecuteAsync(CancellationToken.None),
+            "*/10 * * * *"); // Every 10 minutes
+
+        RecurringJob.AddOrUpdate<AiNewsProcessorJob>(
+            "ai-news-processor",
+            job => job.ExecuteAsync(CancellationToken.None),
+            "*/10 * * * *"); // Every 10 minutes
     }
 
     app.MapStaticAssets();
