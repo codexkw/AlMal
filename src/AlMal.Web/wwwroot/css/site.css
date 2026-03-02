@@ -49,6 +49,13 @@
 }
 
 /* ----------------------------------------------------------
+   Alpine.js x-cloak (MUST be in global CSS loaded in <head>)
+   ---------------------------------------------------------- */
+[x-cloak] {
+    display: none !important;
+}
+
+/* ----------------------------------------------------------
    Base / Body
    ---------------------------------------------------------- */
 html {
@@ -207,6 +214,25 @@ a:hover {
         border-color: rgba(255, 255, 255, 0.15);
     }
 
+    /* Compact navbar on mobile */
+    .almal-navbar {
+        padding: 0.35rem 0;
+    }
+
+    .almal-navbar .navbar-brand {
+        font-size: 1.15rem;
+    }
+
+    /* Tab navigation: smaller text so all tabs fit */
+    .tab-navigation .nav-link {
+        padding: 0.4rem 0.6rem !important;
+        font-size: 0.8rem !important;
+    }
+
+    .tab-navigation .nav-link i {
+        display: none;
+    }
+
     /* Better table display on mobile - hide less important columns */
     .table th:nth-child(4),
     .table td:nth-child(4),
@@ -225,6 +251,19 @@ a:hover {
     /* Cards should not overflow */
     .card-body {
         overflow-x: auto;
+    }
+
+    /* Index ticker compact on mobile */
+    .index-ticker {
+        padding-top: 0.3rem !important;
+        padding-bottom: 0.3rem !important;
+        font-size: 0.8rem;
+    }
+
+    /* Heatmap shorter on mobile */
+    #heatmapContainer {
+        height: 240px !important;
+        min-height: 240px !important;
     }
 
     /* Ensure modals appear above everything */
