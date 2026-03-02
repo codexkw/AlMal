@@ -6,7 +6,8 @@
 <!-- ======================================================================
      1. INDICES TICKER — Sticky horizontal scroll bar
      ====================================================================== -->
-<section class="index-ticker bg-white border-bottom sticky-top shadow-sm py-2"
+<section class="index-ticker border-bottom sticky-top shadow-sm py-2"
+         style="background-color: var(--card-bg);"
          id="indicesTicker">
     <div class="container-fluid">
         <div class="d-flex flex-nowrap overflow-auto gap-4 align-items-center px-2"
@@ -39,7 +40,7 @@
 <!-- ======================================================================
      2. TAB NAVIGATION — جميع الأسهم | القطاعات | قائمة المتابعة
      ====================================================================== -->
-<section class="tab-navigation bg-white border-bottom" x-data="{ activeTab: 'all' }">
+<section class="tab-navigation border-bottom" style="background-color: var(--card-bg);" x-data="{ activeTab: 'all' }">
     <div class="container-fluid">
         <ul class="nav nav-tabs border-0 pt-2 px-2 gap-1" role="tablist">
             <li class="nav-item" role="presentation">
@@ -90,7 +91,7 @@
 
                     <!-- Market Heatmap -->
                     <div class="card border-0 shadow-sm mb-3">
-                        <div class="card-header bg-white border-bottom d-flex align-items-center justify-content-between py-3">
+                        <div class="card-header bg-transparent border-bottom d-flex align-items-center justify-content-between py-3">
                             <h5 class="mb-0 fw-bold" style="color: #4F0E5E;">
                                 <i class="bi bi-grid-fill me-2"></i>
                                 خريطة السوق الحرارية
@@ -115,7 +116,7 @@
 
                     <!-- Top Gainers: الأكثر ارتفاعاً -->
                     <div class="card border-0 shadow-sm mb-3">
-                        <div class="card-header bg-white border-bottom py-2">
+                        <div class="card-header bg-transparent border-bottom py-2">
                             <h6 class="mb-0 fw-bold text-success">
                                 <i class="bi bi-graph-up-arrow me-1"></i>
                                 الأكثر ارتفاعاً
@@ -159,7 +160,7 @@
 
                     <!-- Top Losers: الأكثر انخفاضاً -->
                     <div class="card border-0 shadow-sm mb-3">
-                        <div class="card-header bg-white border-bottom py-2">
+                        <div class="card-header bg-transparent border-bottom py-2">
                             <h6 class="mb-0 fw-bold text-danger">
                                 <i class="bi bi-graph-down-arrow me-1"></i>
                                 الأكثر انخفاضاً
@@ -203,7 +204,7 @@
 
                     <!-- Most Traded: الأكثر تداولاً -->
                     <div class="card border-0 shadow-sm mb-3">
-                        <div class="card-header bg-white border-bottom py-2">
+                        <div class="card-header bg-transparent border-bottom py-2">
                             <h6 class="mb-0 fw-bold" style="color: #FC4A04;">
                                 <i class="bi bi-bar-chart-fill me-1"></i>
                                 الأكثر تداولاً
@@ -254,7 +255,7 @@
                  4. FULL STOCK TABLE — Sortable, searchable, paginated
                  ====================================================================== -->
             <div class="card border-0 shadow-sm mt-2">
-                <div class="card-header bg-white border-bottom py-3">
+                <div class="card-header bg-transparent border-bottom py-3">
                     <div class="row align-items-center g-2">
                         <div class="col-md-6">
                             <h5 class="mb-0 fw-bold" style="color: #4F0E5E;">
@@ -399,7 +400,7 @@
                 <!-- Pagination -->
                 @if (Model.TotalPages > 1)
                 {
-                    <div class="card-footer bg-white border-top py-3">
+                    <div class="card-footer bg-transparent border-top py-3">
                         <div class="d-flex align-items-center justify-content-between">
                             <span class="text-muted small">
                                 الصفحة @Model.CurrentPage من @Model.TotalPages
@@ -450,7 +451,7 @@
         <!-- Tab: Sectors -->
         <div x-show="activeTab === 'sectors'" x-transition x-cloak>
             <div class="card border-0 shadow-sm">
-                <div class="card-header bg-white border-bottom py-3">
+                <div class="card-header bg-transparent border-bottom py-3">
                     <h5 class="mb-0 fw-bold" style="color: #4F0E5E;">
                         <i class="bi bi-pie-chart-fill me-2"></i>
                         القطاعات
@@ -474,7 +475,7 @@
         <!-- Tab: Watchlist -->
         <div x-show="activeTab === 'watchlist'" x-transition x-cloak>
             <div class="card border-0 shadow-sm">
-                <div class="card-header bg-white border-bottom py-3 d-flex align-items-center justify-content-between">
+                <div class="card-header bg-transparent border-bottom py-3 d-flex align-items-center justify-content-between">
                     <h5 class="mb-0 fw-bold" style="color: #4F0E5E;">
                         <i class="bi bi-star-fill me-2"></i>
                         قائمة المتابعة
@@ -587,7 +588,7 @@
          @@click.self="searchOpen = false"
          x-cloak>
 
-        <div class="bg-white w-100 shadow-lg" @@click.stop>
+        <div class="bg-transparent w-100 shadow-lg" @@click.stop>
             <div class="container-fluid py-3">
                 <div class="d-flex align-items-center gap-2">
                     <button class="btn btn-link text-dark p-0"
@@ -676,7 +677,7 @@
 
     .page-link:hover {
         color: #3a0a46;
-        background-color: #f8f6fa;
+        background-color: var(--hover-bg);
     }
 
     /* Index ticker smooth scroll */
@@ -699,7 +700,7 @@
     }
 
     .stock-row:hover {
-        background-color: #f8f6fa !important;
+        background-color: var(--hover-bg) !important;
     }
 
     /* Price flash animations */
@@ -723,7 +724,7 @@
 
     /* Sidebar widget hover */
     .list-group-item-action:hover {
-        background-color: #f8f6fa;
+        background-color: var(--hover-bg);
     }
 
     /* Mobile responsive adjustments */

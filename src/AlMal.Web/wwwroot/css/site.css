@@ -15,25 +15,7 @@
     --font-primary: 'IBM Plex Sans Arabic', 'Noto Sans Arabic', sans-serif;
     --font-mono: 'IBM Plex Mono', monospace;
 
-    /* Dark theme colors (default) */
-    --body-bg: #0f0f1a;
-    --body-color: #e8e8ec;
-    --card-bg: #1a1a2e;
-    --card-border: #2a2a40;
-    --muted-color: #9ca3af;
-    --navbar-bg: var(--clr-primary);
-    --bottom-nav-bg: #1a1a2e;
-    --bottom-nav-border: #2a2a40;
-    --input-bg: #1e1e32;
-    --input-border: #3a3a52;
-    --input-color: #e8e8ec;
-    --hover-bg: rgba(255, 255, 255, 0.05);
-}
-
-/* ----------------------------------------------------------
-   Light Theme Overrides
-   ---------------------------------------------------------- */
-[data-theme="light"] {
+    /* Light theme colors (default) */
     --body-bg: #f8f9fa;
     --body-color: #212529;
     --card-bg: #ffffff;
@@ -46,6 +28,24 @@
     --input-border: #ced4da;
     --input-color: #212529;
     --hover-bg: rgba(0, 0, 0, 0.04);
+}
+
+/* ----------------------------------------------------------
+   Dark Theme Overrides
+   ---------------------------------------------------------- */
+[data-theme="dark"] {
+    --body-bg: #0f0f1a;
+    --body-color: #e8e8ec;
+    --card-bg: #1a1a2e;
+    --card-border: #2a2a40;
+    --muted-color: #9ca3af;
+    --navbar-bg: var(--clr-primary);
+    --bottom-nav-bg: #1a1a2e;
+    --bottom-nav-border: #2a2a40;
+    --input-bg: #1e1e32;
+    --input-border: #3a3a52;
+    --input-color: #e8e8ec;
+    --hover-bg: rgba(255, 255, 255, 0.05);
 }
 
 /* ----------------------------------------------------------
@@ -183,8 +183,8 @@ a:hover {
     /* Ensure Bootstrap navbar collapse has proper background on mobile */
     .almal-navbar .navbar-collapse {
         background-color: var(--clr-primary);
-        padding: 0.5rem;
-        border-radius: 0 0 0.5rem 0.5rem;
+        padding: 0.75rem;
+        border-radius: 0 0 0.75rem 0.75rem;
         margin-top: 0.25rem;
     }
 
@@ -205,6 +205,34 @@ a:hover {
 
     .almal-navbar .dropdown-menu .dropdown-divider {
         border-color: rgba(255, 255, 255, 0.15);
+    }
+
+    /* Better table display on mobile - hide less important columns */
+    .table th:nth-child(4),
+    .table td:nth-child(4),
+    .table th:nth-child(6),
+    .table td:nth-child(6) {
+        display: none;
+    }
+
+    /* Tighter table padding on mobile */
+    .table th,
+    .table td {
+        padding: 0.5rem 0.4rem !important;
+        font-size: 0.8rem;
+    }
+
+    /* Cards should not overflow */
+    .card-body {
+        overflow-x: auto;
+    }
+
+    /* Ensure modals appear above everything */
+    .modal {
+        z-index: 1080 !important;
+    }
+    .modal-backdrop {
+        z-index: 1070 !important;
     }
 }
 
@@ -439,7 +467,51 @@ body.theme-transitioning *::after {
 }
 
 /* ----------------------------------------------------------
-   Scrollbar (Dark Theme)
+   Theme-aware Bootstrap overrides
+   ---------------------------------------------------------- */
+.table {
+    color: var(--body-color);
+}
+
+.table-light th {
+    background-color: var(--hover-bg) !important;
+    color: var(--body-color) !important;
+}
+
+.list-group-item {
+    background-color: var(--card-bg);
+    color: var(--body-color);
+    border-color: var(--card-border);
+}
+
+.list-group-item-action:hover {
+    background-color: var(--hover-bg) !important;
+    color: var(--body-color);
+}
+
+.modal-content {
+    background-color: var(--card-bg);
+    color: var(--body-color);
+}
+
+.bg-light {
+    background-color: var(--hover-bg) !important;
+}
+
+.text-dark {
+    color: var(--body-color) !important;
+}
+
+.border-bottom {
+    border-color: var(--card-border) !important;
+}
+
+.border-top {
+    border-color: var(--card-border) !important;
+}
+
+/* ----------------------------------------------------------
+   Scrollbar
    ---------------------------------------------------------- */
 ::-webkit-scrollbar {
     width: 8px;
