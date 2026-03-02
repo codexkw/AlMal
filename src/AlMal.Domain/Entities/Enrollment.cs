@@ -5,6 +5,7 @@ public class Enrollment
     public string UserId { get; set; } = null!;
     public int CourseId { get; set; }
     public int Progress { get; set; }
+    public string? CompletedLessonIds { get; set; } // JSON array of completed lesson IDs
     public DateTime EnrolledAt { get; set; } = DateTime.UtcNow;
 
     // Navigation

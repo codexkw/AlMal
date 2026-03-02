@@ -1,0 +1,112 @@
+@model AlMal.Web.ViewModels.Academy.QuizViewModel
+@{
+    ViewData["Title"] = "اختبار - " + Model.LessonTitleAr;
+}
+
+@* ── Breadcrumb ── *@
+<nav aria-label="مسار التنقل" class="mb-3">
+    <ol class="breadcrumb small">
+        <li class="breadcrumb-item"><a asp-action="Index">الأكاديمية</a></li>
+        <li class="breadcrumb-item"><a asp-action="Course" asp-route-id="@Model.CourseId">@Model.CourseTitleAr</a></li>
+        <li class="breadcrumb-item"><a asp-action="Lesson" asp-route-id="@Model.LessonId">@Model.LessonTitleAr</a></li>
+        <li class="breadcrumb-item active" aria-current="page">الاختبار</li>
+    </ol>
+</nav>
+
+@* ── Quiz Header ── *@
+<section class="mb-4 text-center">
+    <h1 class="h3 fw-bold mb-2">
+        <i class="bi bi-question-circle ms-2"></i>اختبار: @Model.LessonTitleAr
+    </h1>
+    <p class="text-muted">
+        نسبة النجاح المطلوبة: <strong>@Model.PassPercentage%</strong>
+        &mdash;
+        عدد الأسئلة: <strong>@Model.Questions.Count</strong>
+    </p>
+</section>
+
+@* ── Quiz Form (Alpine.js state management) ── *@
+<div x-data="{
+    answers: {},
+    totalQuestions: @Model.Questions.Count,
+    get answeredCount() {
+        return Object.keys(this.answers).length;
+    },
+    get allAnswered() {
+        return this.answeredCount === this.totalQuestions;
+    },
+    selectAnswer(questionId, optionIndex) {
+        this.answers[questionId] = optionIndex;
+    }
+}">
+    <form asp-action="SubmitQuiz" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="quizId" value="@Model.QuizId" />
+
+        @* ── Questions ── *@
+        @for (int i = 0; i < Model.Questions.Count; i++)
+        {
+            var question = Model.Questions[i];
+            var questionNumber = i + 1;
+
+            <div class="card border-0 shadow-sm mb-3" style="background: var(--card-bg); border: 1px solid var(--card-border) !important;">
+                <div class="card-body p-4">
+                    <h5 class="fw-bold mb-3">
+                        <span class="badge bg-primary rounded-circle ms-2" style="width: 30px; height: 30px; line-height: 22px;">@questionNumber</span>
+                        @question.QuestionAr
+                    </h5>
+
+                    <div class="d-flex flex-column gap-2">
+                        @for (int j = 0; j < question.Options.Count; j++)
+                        {
+                            var optionIndex = j;
+                            var option = question.Options[j];
+                            var inputName = $"answers[{question.Id}]";
+                            var inputId = $"q{question.Id}_o{optionIndex}";
+
+                            <label class="d-flex align-items-center gap-3 p-3 rounded cursor-pointer"
+                                   style="border: 1px solid var(--card-border); cursor: pointer; transition: background 0.2s;"
+                                   :style="answers[@question.Id] === @optionIndex ? 'background: rgba(79, 14, 94, 0.15); border-color: var(--clr-primary);' : ''"
+                                   @@click="selectAnswer(@question.Id, @optionIndex)">
+                                <input type="radio"
+                                       name="@inputName"
+                                       id="@inputId"
+                                       value="@optionIndex"
+                                       class="form-check-input"
+                                       x-model.number="answers[@question.Id]"
+                                       style="min-width: 20px;" />
+                                <span>@option</span>
+                            </label>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+
+        @* ── Progress & Submit ── *@
+        <div class="card border-0 shadow-sm" style="background: var(--card-bg); border: 1px solid var(--card-border) !important;">
+            <div class="card-body p-4 text-center">
+                <p class="mb-3 text-muted">
+                    تمت الإجابة على <strong x-text="answeredCount">0</strong> من <strong>@Model.Questions.Count</strong> سؤال
+                </p>
+
+                <div class="progress mb-3 mx-auto" style="height: 8px; max-width: 300px;">
+                    <div class="progress-bar" role="progressbar"
+                         :style="'width: ' + (answeredCount / totalQuestions * 100) + '%; background: var(--clr-primary);'">
+                    </div>
+                </div>
+
+                <button type="submit"
+                        class="btn btn-primary btn-lg px-5"
+                        :disabled="!allAnswered"
+                        :class="allAnswered ? '' : 'opacity-50'">
+                    <i class="bi bi-send ms-1"></i>إرسال الإجابات
+                </button>
+
+                <template x-if="!allAnswered">
+                    <p class="text-muted small mt-2">يرجى الإجابة على جميع الأسئلة</p>
+                </template>
+            </div>
+        </div>
+    </form>
+</div>
