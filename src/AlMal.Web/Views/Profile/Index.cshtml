@@ -124,6 +124,12 @@
                                class="btn btn-outline-primary rounded-pill px-4">
                                 <i class="bi bi-pencil ms-1"></i>تعديل الملف الشخصي
                             </a>
+                            <form asp-controller="Account" asp-action="Logout" method="post" class="d-inline">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="btn btn-outline-danger rounded-pill px-4">
+                                    <i class="bi bi-box-arrow-right ms-1"></i>تسجيل الخروج
+                                </button>
+                            </form>
                         }
                         else if (User.Identity != null && User.Identity.IsAuthenticated)
                         {

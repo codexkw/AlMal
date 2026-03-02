@@ -56,7 +56,12 @@
             </div>
 
             @* Title *@
-            <h6 class="fw-bold mb-2">@article.TitleAr</h6>
+            <h6 class="fw-bold mb-2">
+                <a asp-controller="News" asp-action="Detail" asp-route-id="@article.Id"
+                   class="text-decoration-none" style="color: var(--body-color);">
+                    @article.TitleAr
+                </a>
+            </h6>
 
             @* Summary *@
             @if (!string.IsNullOrWhiteSpace(article.Summary))
@@ -81,16 +86,22 @@
                 </div>
             }
 
-            @* Source link *@
-            @if (!string.IsNullOrWhiteSpace(article.SourceUrl))
-            {
-                <a href="@article.SourceUrl"
-                   target="_blank"
-                   rel="noopener noreferrer"
-                   class="btn btn-sm btn-outline-secondary rounded-pill">
-                    المصدر <i class="bi bi-box-arrow-up-left"></i>
+            @* Action links *@
+            <div class="d-flex gap-2">
+                <a asp-controller="News" asp-action="Detail" asp-route-id="@article.Id"
+                   class="btn btn-sm btn-primary rounded-pill">
+                    التفاصيل <i class="bi bi-arrow-left"></i>
                 </a>
-            }
+                @if (!string.IsNullOrWhiteSpace(article.SourceUrl))
+                {
+                    <a href="@article.SourceUrl"
+                       target="_blank"
+                       rel="noopener noreferrer"
+                       class="btn btn-sm btn-outline-secondary rounded-pill">
+                        المصدر <i class="bi bi-box-arrow-up-left"></i>
+                    </a>
+                }
+            </div>
         </div>
     </div>
 }

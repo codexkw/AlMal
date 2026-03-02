@@ -38,3 +38,18 @@ public class SectorFilterOption
     public int Id { get; set; }
     public string NameAr { get; set; } = null!;
 }
+
+public class NewsDetailViewModel
+{
+    public long Id { get; set; }
+    public string TitleAr { get; set; } = null!;
+    public string Source { get; set; } = null!;
+    public string? SourceUrl { get; set; }
+    public Sentiment Sentiment { get; set; }
+    public string? Summary { get; set; }
+    public string? ContextData { get; set; }
+    public string? ImageUrl { get; set; }
+    public DateTime PublishedAt { get; set; }
+    public bool IsProcessed { get; set; }
+    public List<RelatedStockTag> RelatedStocks { get; set; } = [];
+}

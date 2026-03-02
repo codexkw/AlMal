@@ -1,0 +1,103 @@
+@model AlMal.Web.ViewModels.News.NewsDetailViewModel
+@{
+    ViewData["Title"] = Model.TitleAr;
+    var sentimentClass = Model.Sentiment == AlMal.Domain.Enums.Sentiment.Positive ? "badge-positive" :
+                         Model.Sentiment == AlMal.Domain.Enums.Sentiment.Negative ? "badge-negative" :
+                         "bg-secondary bg-opacity-10 text-secondary";
+    var sentimentText = Model.Sentiment == AlMal.Domain.Enums.Sentiment.Positive ? "إيجابي" :
+                        Model.Sentiment == AlMal.Domain.Enums.Sentiment.Negative ? "سلبي" : "محايد";
+    var sentimentIcon = Model.Sentiment == AlMal.Domain.Enums.Sentiment.Positive ? "bi-arrow-up-circle-fill" :
+                        Model.Sentiment == AlMal.Domain.Enums.Sentiment.Negative ? "bi-arrow-down-circle-fill" :
+                        "bi-dash-circle-fill";
+}
+
+<section class="py-3">
+    <div class="row justify-content-center">
+        <div class="col-12 col-lg-8">
+            @* Back link *@
+            <a asp-controller="News" asp-action="Index" class="btn btn-sm btn-outline-secondary rounded-pill mb-3">
+                <i class="bi bi-arrow-right me-1"></i>العودة للأخبار
+            </a>
+
+            <article class="card border-0 shadow-sm">
+                @if (!string.IsNullOrWhiteSpace(Model.ImageUrl))
+                {
+                    <img src="@Model.ImageUrl" alt="@Model.TitleAr"
+                         class="card-img-top" style="max-height: 400px; object-fit: cover;" />
+                }
+                <div class="card-body p-4">
+                    @* Metadata *@
+                    <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+                        <span class="badge bg-primary bg-opacity-10" style="color: #4F0E5E;">@Model.Source</span>
+                        <span class="badge @sentimentClass">
+                            <i class="bi @sentimentIcon me-1"></i>@sentimentText
+                        </span>
+                        <span class="text-muted small">
+                            <i class="bi bi-clock me-1"></i>@Model.PublishedAt.ToString("yyyy/MM/dd - HH:mm")
+                        </span>
+                    </div>
+
+                    @* Title *@
+                    <h1 class="fs-3 fw-bold mb-4" style="color: var(--body-color); line-height: 1.6;">
+                        @Model.TitleAr
+                    </h1>
+
+                    @* Related Stocks *@
+                    @if (Model.RelatedStocks.Any())
+                    {
+                        <div class="d-flex flex-wrap gap-2 mb-4">
+                            @foreach (var stock in Model.RelatedStocks)
+                            {
+                                <a asp-controller="Stock" asp-action="Detail" asp-route-symbol="@stock.Symbol"
+                                   class="badge bg-primary bg-opacity-10 text-decoration-none px-3 py-2"
+                                   style="color: #4F0E5E; font-size: 0.85rem;">
+                                    <i class="bi bi-graph-up me-1"></i>@stock.Symbol - @stock.NameAr
+                                </a>
+                            }
+                        </div>
+                    }
+
+                    @* Summary *@
+                    @if (!string.IsNullOrWhiteSpace(Model.Summary))
+                    {
+                        <div class="mb-4">
+                            <h5 class="fw-bold mb-3" style="color: #4F0E5E;">
+                                <i class="bi bi-text-paragraph me-2"></i>الملخص
+                            </h5>
+                            <div class="p-3 rounded" style="background-color: var(--hover-bg); line-height: 1.8;">
+                                @Model.Summary
+                            </div>
+                        </div>
+                    }
+
+                    @* AI Context / Analysis *@
+                    @if (!string.IsNullOrWhiteSpace(Model.ContextData))
+                    {
+                        <div class="mb-4">
+                            <h5 class="fw-bold mb-3" style="color: #4F0E5E;">
+                                <i class="bi bi-robot me-2"></i>تحليل الذكاء الاصطناعي
+                            </h5>
+                            <div class="p-3 rounded border" style="border-color: var(--card-border) !important; line-height: 1.8;">
+                                @Model.ContextData
+                            </div>
+                            <p class="text-muted small mt-2 mb-0">
+                                <i class="bi bi-info-circle me-1"></i>هذا تحليل تعليمي وليس نصيحة استثمارية
+                            </p>
+                        </div>
+                    }
+
+                    @* Source Link *@
+                    @if (!string.IsNullOrWhiteSpace(Model.SourceUrl))
+                    {
+                        <div class="mt-4 pt-3 border-top" style="border-color: var(--card-border) !important;">
+                            <a href="@Model.SourceUrl" target="_blank" rel="noopener noreferrer"
+                               class="btn btn-outline-primary rounded-pill">
+                                <i class="bi bi-box-arrow-up-left me-1"></i>قراءة الخبر الأصلي
+                            </a>
+                        </div>
+                    }
+                </div>
+            </article>
+        </div>
+    </div>
+</section>

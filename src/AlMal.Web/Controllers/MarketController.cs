@@ -162,6 +162,7 @@ public class MarketController : Controller
             .Take(10)
             .Select(s => new
             {
+                s.Id,
                 s.Symbol,
                 s.NameAr,
                 s.LastPrice,

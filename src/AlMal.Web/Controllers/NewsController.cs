@@ -28,6 +28,40 @@ public class NewsController : Controller
     }
 
     [HttpGet]
+    public async Task<IActionResult> Detail(long id)
+    {
+        var article = await _context.NewsArticles
+            .AsNoTracking()
+            .Include(n => n.NewsArticleStocks)
+                .ThenInclude(nas => nas.Stock)
+            .FirstOrDefaultAsync(n => n.Id == id);
+
+        if (article == null)
+            return NotFound();
+
+        var viewModel = new NewsDetailViewModel
+        {
+            Id = article.Id,
+            TitleAr = article.TitleAr,
+            Source = article.Source,
+            SourceUrl = article.SourceUrl,
+            Sentiment = article.Sentiment,
+            Summary = article.Summary,
+            ContextData = article.ContextData,
+            ImageUrl = article.ImageUrl,
+            PublishedAt = article.PublishedAt,
+            IsProcessed = article.IsProcessed,
+            RelatedStocks = article.NewsArticleStocks.Select(nas => new RelatedStockTag
+            {
+                Symbol = nas.Stock.Symbol,
+                NameAr = nas.Stock.NameAr
+            }).ToList()
+        };
+
+        return View(viewModel);
+    }
+
+    [HttpGet]
     public async Task<IActionResult> Feed(
         string? stock,
         int? sector,

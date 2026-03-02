@@ -179,6 +179,33 @@ a:hover {
     body {
         padding-bottom: 70px;
     }
+
+    /* Ensure Bootstrap navbar collapse has proper background on mobile */
+    .almal-navbar .navbar-collapse {
+        background-color: var(--clr-primary);
+        padding: 0.5rem;
+        border-radius: 0 0 0.5rem 0.5rem;
+        margin-top: 0.25rem;
+    }
+
+    /* Dropdown menu styling for dark navbar on mobile */
+    .almal-navbar .dropdown-menu {
+        background-color: rgba(255, 255, 255, 0.1);
+        border: none;
+    }
+
+    .almal-navbar .dropdown-menu .dropdown-item {
+        color: rgba(255, 255, 255, 0.85);
+    }
+
+    .almal-navbar .dropdown-menu .dropdown-item:hover {
+        background-color: rgba(255, 255, 255, 0.15);
+        color: #fff;
+    }
+
+    .almal-navbar .dropdown-menu .dropdown-divider {
+        border-color: rgba(255, 255, 255, 0.15);
+    }
 }
 
 /* ----------------------------------------------------------
