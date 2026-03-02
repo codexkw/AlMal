@@ -1,13 +1,8 @@
 using System.Security.Claims;
-using System.Text.Json;
 using AlMal.Application.DTOs.Api;
-using AlMal.Domain.Entities;
-using AlMal.Domain.Enums;
-using AlMal.Infrastructure.Data;
+using AlMal.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace AlMal.API.Controllers;
 
@@ -15,37 +10,22 @@ namespace AlMal.API.Controllers;
 [Route("api/v1/academy")]
 public class AcademyApiController : ControllerBase
 {
-    private readonly AlMalDbContext _db;
-    private readonly UserManager<ApplicationUser> _userManager;
+    private readonly ICourseService _courseService;
+    private readonly IQuizService _quizService;
+    private readonly ICertificateService _certificateService;
 
-    public AcademyApiController(AlMalDbContext db, UserManager<ApplicationUser> userManager)
+    public AcademyApiController(
+        ICourseService courseService,
+        IQuizService quizService,
+        ICertificateService certificateService)
     {
-        _db = db;
-        _userManager = userManager;
+        _courseService = courseService;
+        _quizService = quizService;
+        _certificateService = certificateService;
     }
-
-    // ── Helpers ─────────────────────────────────────────────────
 
     private string? GetCurrentUserId() =>
         User.FindFirstValue(ClaimTypes.NameIdentifier);
-
-    private static List<int> ParseCompletedLessonIds(string? json)
-    {
-        if (string.IsNullOrWhiteSpace(json))
-            return new List<int>();
-
-        try
-        {
-            return JsonSerializer.Deserialize<List<int>>(json) ?? new List<int>();
-        }
-        catch
-        {
-            return new List<int>();
-        }
-    }
-
-    private static string SerializeCompletedLessonIds(List<int> ids) =>
-        JsonSerializer.Serialize(ids);
 
     // ════════════════════════════════════════════════════════════
     // GET /api/v1/academy/courses — Course Catalog
@@ -60,74 +40,28 @@ public class AcademyApiController : ControllerBase
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 10)
     {
-        if (page < 1) page = 1;
-        if (pageSize < 1) pageSize = 10;
-        if (pageSize > 50) pageSize = 50;
+        var result = await _courseService.GetCourseCatalogAsync(difficulty, page, pageSize, GetCurrentUserId());
 
-        var currentUserId = GetCurrentUserId();
-
-        var query = _db.Courses
-            .AsNoTracking()
-            .Where(c => c.IsPublished);
-
-        // Difficulty filter
-        if (!string.IsNullOrEmpty(difficulty))
+        var courses = result.Courses.Select(c => new CourseDto
         {
-            query = difficulty.ToLower() switch
-            {
-                "free" => query.Where(c => c.IsFree),
-                "paid" => query.Where(c => !c.IsFree),
-                _ => query
-            };
-        }
-
-        var totalCount = await query.CountAsync();
-
-        var courses = await query
-            .OrderBy(c => c.SortOrder)
-            .ThenByDescending(c => c.CreatedAt)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .Select(c => new CourseDto
-            {
-                Id = c.Id,
-                TitleAr = c.TitleAr,
-                DescriptionAr = c.DescriptionAr,
-                ThumbnailUrl = c.ThumbnailUrl,
-                LessonCount = c.Lessons.Count,
-                TotalDurationMinutes = c.Lessons.Sum(l => l.DurationMinutes),
-                IsFree = c.IsFree,
-                Price = c.Price,
-                EnrolledCount = c.EnrollmentCount
-            })
-            .ToListAsync();
-
-        // Set enrollment info for the current user
-        if (currentUserId != null && courses.Count > 0)
-        {
-            var courseIds = courses.Select(c => c.Id).ToList();
-            var enrollments = await _db.Enrollments
-                .AsNoTracking()
-                .Where(e => e.UserId == currentUserId && courseIds.Contains(e.CourseId))
-                .Select(e => new { e.CourseId, e.Progress })
-                .ToListAsync();
-
-            foreach (var course in courses)
-            {
-                var enrollment = enrollments.FirstOrDefault(e => e.CourseId == course.Id);
-                if (enrollment != null)
-                {
-                    course.IsEnrolled = true;
-                    course.ProgressPercent = enrollment.Progress;
-                }
-            }
-        }
+            Id = c.Id,
+            TitleAr = c.TitleAr,
+            DescriptionAr = c.DescriptionAr,
+            ThumbnailUrl = c.ThumbnailUrl,
+            LessonCount = c.LessonCount,
+            TotalDurationMinutes = c.TotalDurationMinutes,
+            IsFree = c.IsFree,
+            Price = c.Price,
+            EnrolledCount = c.EnrolledCount,
+            IsEnrolled = c.IsEnrolled,
+            ProgressPercent = c.ProgressPercent
+        }).ToList();
 
         var pagination = new PaginationInfo
         {
-            Page = page,
-            PageSize = pageSize,
-            TotalCount = totalCount
+            Page = result.Page,
+            PageSize = result.PageSize,
+            TotalCount = result.TotalCount
         };
 
         return Ok(ApiResponse<List<CourseDto>>.Ok(courses, pagination));
@@ -144,45 +78,16 @@ public class AcademyApiController : ControllerBase
     [HttpPost("courses/{id:int}/enroll")]
     public async Task<IActionResult> Enroll(int id)
     {
-        var currentUserId = GetCurrentUserId();
-        if (currentUserId == null)
+        var userId = GetCurrentUserId();
+        if (userId == null)
             return Unauthorized(ApiResponse<object>.Fail("UNAUTHORIZED", "غير مصرح"));
 
-        var course = await _db.Courses
-            .AsNoTracking()
-            .FirstOrDefaultAsync(c => c.Id == id && c.IsPublished);
+        var result = await _courseService.EnrollAsync(id, userId);
 
-        if (course == null)
-            return NotFound(ApiResponse<object>.Fail("COURSE_NOT_FOUND", "الدورة غير موجودة"));
+        if (!result.Success)
+            return NotFound(ApiResponse<object>.Fail("COURSE_NOT_FOUND", result.Message ?? "الدورة غير موجودة"));
 
-        // Check if already enrolled
-        var existingEnrollment = await _db.Enrollments
-            .FirstOrDefaultAsync(e => e.UserId == currentUserId && e.CourseId == id);
-
-        if (existingEnrollment != null)
-            return Ok(ApiResponse<object>.Ok(new { message = "أنت مسجل بالفعل في هذه الدورة", courseId = id }));
-
-        var enrollment = new Enrollment
-        {
-            UserId = currentUserId,
-            CourseId = id,
-            Progress = 0,
-            CompletedLessonIds = "[]",
-            EnrolledAt = DateTime.UtcNow
-        };
-
-        _db.Enrollments.Add(enrollment);
-
-        // Increment enrollment count
-        var courseEntity = await _db.Courses.FindAsync(id);
-        if (courseEntity != null)
-        {
-            courseEntity.EnrollmentCount++;
-        }
-
-        await _db.SaveChangesAsync();
-
-        return Ok(ApiResponse<object>.Ok(new { message = "تم التسجيل بنجاح", courseId = id }));
+        return Ok(ApiResponse<object>.Ok(new { message = result.Message, courseId = id }));
     }
 
     // ════════════════════════════════════════════════════════════
@@ -196,42 +101,28 @@ public class AcademyApiController : ControllerBase
     [HttpGet("lessons/{id:int}")]
     public async Task<IActionResult> GetLesson(int id)
     {
-        var currentUserId = GetCurrentUserId();
-        if (currentUserId == null)
+        var userId = GetCurrentUserId();
+        if (userId == null)
             return Unauthorized(ApiResponse<LessonDto>.Fail("UNAUTHORIZED", "غير مصرح"));
 
-        var lesson = await _db.Lessons
-            .AsNoTracking()
-            .Include(l => l.Course)
-            .Include(l => l.Quiz)
-            .FirstOrDefaultAsync(l => l.Id == id);
+        var result = await _courseService.GetLessonAsync(id, userId);
 
-        if (lesson == null)
-            return NotFound(ApiResponse<LessonDto>.Fail("LESSON_NOT_FOUND", "الدرس غير موجود"));
-
-        // Verify user is enrolled
-        var enrollment = await _db.Enrollments
-            .AsNoTracking()
-            .FirstOrDefaultAsync(e => e.UserId == currentUserId && e.CourseId == lesson.CourseId);
-
-        if (enrollment == null)
-            return StatusCode(403, ApiResponse<LessonDto>.Fail("NOT_ENROLLED", "يجب التسجيل في الدورة أولاً"));
-
-        var completedIds = ParseCompletedLessonIds(enrollment.CompletedLessonIds);
+        if (result == null)
+            return NotFound(ApiResponse<LessonDto>.Fail("LESSON_NOT_FOUND", "الدرس غير موجود أو غير مسجل في الدورة"));
 
         var dto = new LessonDto
         {
-            Id = lesson.Id,
-            TitleAr = lesson.TitleAr,
-            ContentAr = lesson.ContentAr,
-            VideoUrl = lesson.VideoUrl,
-            SortOrder = lesson.SortOrder,
-            DurationMinutes = lesson.DurationMinutes,
-            CourseId = lesson.CourseId,
-            CourseTitleAr = lesson.Course.TitleAr,
-            HasQuiz = lesson.Quiz != null,
-            QuizId = lesson.Quiz?.Id,
-            IsCompleted = completedIds.Contains(lesson.Id)
+            Id = result.Id,
+            TitleAr = result.TitleAr,
+            ContentAr = result.ContentAr,
+            VideoUrl = result.VideoUrl,
+            SortOrder = result.SortOrder,
+            DurationMinutes = 0,
+            CourseId = result.CourseId,
+            CourseTitleAr = result.CourseTitleAr,
+            HasQuiz = result.HasQuiz,
+            QuizId = result.QuizId,
+            IsCompleted = result.IsCompleted
         };
 
         return Ok(ApiResponse<LessonDto>.Ok(dto));
@@ -248,126 +139,88 @@ public class AcademyApiController : ControllerBase
     [HttpPost("quizzes/{id:int}/submit")]
     public async Task<IActionResult> SubmitQuiz(int id, [FromBody] QuizSubmissionDto submission)
     {
-        var currentUserId = GetCurrentUserId();
-        if (currentUserId == null)
+        var userId = GetCurrentUserId();
+        if (userId == null)
             return Unauthorized(ApiResponse<QuizResultDto>.Fail("UNAUTHORIZED", "غير مصرح"));
 
-        var quiz = await _db.Quizzes
-            .AsNoTracking()
-            .Include(q => q.Questions)
-            .Include(q => q.Lesson)
-                .ThenInclude(l => l.Course)
-            .FirstOrDefaultAsync(q => q.Id == id);
+        var result = await _quizService.SubmitQuizAsync(id, submission.Answers, userId);
 
-        if (quiz == null)
-            return NotFound(ApiResponse<QuizResultDto>.Fail("QUIZ_NOT_FOUND", "الاختبار غير موجود"));
+        if (result == null)
+            return NotFound(ApiResponse<QuizResultDto>.Fail("QUIZ_NOT_FOUND", "الاختبار غير موجود أو غير مسجل في الدورة"));
 
-        // Verify enrolled
-        var enrollment = await _db.Enrollments
-            .FirstOrDefaultAsync(e => e.UserId == currentUserId && e.CourseId == quiz.Lesson.CourseId);
-
-        if (enrollment == null)
-            return StatusCode(403, ApiResponse<QuizResultDto>.Fail("NOT_ENROLLED", "يجب التسجيل في الدورة أولاً"));
-
-        // Calculate score
-        int correctCount = 0;
-        int totalCount = quiz.Questions.Count;
-
-        foreach (var question in quiz.Questions)
+        var dto = new QuizResultDto
         {
-            if (submission.Answers.TryGetValue(question.Id, out int selectedIndex)
-                && selectedIndex == question.CorrectIndex)
-            {
-                correctCount++;
-            }
-        }
-
-        int score = totalCount > 0
-            ? (int)Math.Round(correctCount * 100.0 / totalCount)
-            : 0;
-
-        bool passed = score >= quiz.PassingScore;
-
-        var result = new QuizResultDto
-        {
-            Passed = passed,
-            Score = score,
-            PassPercentage = quiz.PassingScore,
-            CorrectCount = correctCount,
-            TotalCount = totalCount
+            Passed = result.Passed,
+            Score = result.Score,
+            PassPercentage = result.PassPercentage,
+            CorrectCount = result.CorrectCount,
+            TotalCount = result.TotalCount,
+            CourseCompleted = result.CourseCompleted,
+            CertificateId = result.CertificateId
         };
 
-        if (passed)
+        return Ok(ApiResponse<QuizResultDto>.Ok(dto));
+    }
+
+    // ════════════════════════════════════════════════════════════
+    // GET /api/v1/academy/courses/{id}/progress — Course Progress
+    // ════════════════════════════════════════════════════════════
+
+    /// <summary>
+    /// GET /api/v1/academy/courses/{id}/progress — Get user's progress in course
+    /// </summary>
+    [Authorize]
+    [HttpGet("courses/{id:int}/progress")]
+    public async Task<IActionResult> GetProgress(int id)
+    {
+        var userId = GetCurrentUserId();
+        if (userId == null)
+            return Unauthorized(ApiResponse<object>.Fail("UNAUTHORIZED", "غير مصرح"));
+
+        var course = await _courseService.GetCourseDetailAsync(id, userId);
+        if (course == null)
+            return NotFound(ApiResponse<object>.Fail("COURSE_NOT_FOUND", "الدورة غير موجودة"));
+
+        var completedLessons = course.Lessons.Count(l => l.IsCompleted);
+
+        return Ok(ApiResponse<object>.Ok(new
         {
-            // Mark lesson as completed
-            var completedIds = ParseCompletedLessonIds(enrollment.CompletedLessonIds);
+            progress = course.ProgressPercent,
+            completedLessons,
+            totalLessons = course.LessonCount
+        }));
+    }
 
-            if (!completedIds.Contains(quiz.LessonId))
-            {
-                completedIds.Add(quiz.LessonId);
-                enrollment.CompletedLessonIds = SerializeCompletedLessonIds(completedIds);
-            }
+    // ════════════════════════════════════════════════════════════
+    // GET /api/v1/academy/certificates — User's Certificates
+    // ════════════════════════════════════════════════════════════
 
-            // Recalculate progress
-            var allLessonIds = await _db.Lessons
-                .AsNoTracking()
-                .Where(l => l.CourseId == quiz.Lesson.CourseId)
-                .Select(l => l.Id)
-                .ToListAsync();
+    /// <summary>
+    /// GET /api/v1/academy/certificates — Get user's certificates
+    /// </summary>
+    [Authorize]
+    [HttpGet("certificates")]
+    public async Task<IActionResult> GetCertificates()
+    {
+        var userId = GetCurrentUserId();
+        if (userId == null)
+            return Unauthorized(ApiResponse<List<CertificateDetail>>.Fail("UNAUTHORIZED", "غير مصرح"));
 
-            int totalLessons = allLessonIds.Count;
-            enrollment.Progress = totalLessons > 0
-                ? (int)Math.Round(completedIds.Count * 100.0 / totalLessons)
-                : 0;
+        var certificates = await _certificateService.GetUserCertificatesAsync(userId);
+        return Ok(ApiResponse<List<CertificateDetail>>.Ok(certificates));
+    }
 
-            // Check if ALL lessons completed
-            bool courseCompleted = allLessonIds.All(lid => completedIds.Contains(lid));
+    // ════════════════════════════════════════════════════════════
+    // GET /api/v1/academy/certificates/{certificateNumber}/verify
+    // ════════════════════════════════════════════════════════════
 
-            if (courseCompleted)
-            {
-                enrollment.Progress = 100;
-                result.CourseCompleted = true;
-
-                // Check if certificate already exists
-                var existingCertificate = await _db.Certificates
-                    .AsNoTracking()
-                    .FirstOrDefaultAsync(c => c.UserId == currentUserId && c.CourseId == quiz.Lesson.CourseId);
-
-                if (existingCertificate == null)
-                {
-                    var certificate = new Certificate
-                    {
-                        UserId = currentUserId,
-                        CourseId = quiz.Lesson.CourseId,
-                        CertificateNumber = $"ALMAL-{quiz.Lesson.CourseId:D4}-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString("N")[..8].ToUpper()}",
-                        IssuedAt = DateTime.UtcNow
-                    };
-
-                    _db.Certificates.Add(certificate);
-                    await _db.SaveChangesAsync();
-
-                    result.CertificateId = certificate.Id;
-
-                    // Upgrade user if paid course completed
-                    if (!quiz.Lesson.Course.IsFree)
-                    {
-                        var user = await _userManager.FindByIdAsync(currentUserId);
-                        if (user != null && user.UserType == UserType.Normal)
-                        {
-                            user.UserType = UserType.ProAnalyst;
-                            await _userManager.UpdateAsync(user);
-                        }
-                    }
-                }
-                else
-                {
-                    result.CertificateId = existingCertificate.Id;
-                }
-            }
-
-            await _db.SaveChangesAsync();
-        }
-
-        return Ok(ApiResponse<QuizResultDto>.Ok(result));
+    /// <summary>
+    /// GET /api/v1/academy/certificates/{certificateNumber}/verify — Verify certificate
+    /// </summary>
+    [HttpGet("certificates/{certificateNumber}/verify")]
+    public async Task<IActionResult> VerifyCertificate(string certificateNumber)
+    {
+        var result = await _certificateService.VerifyCertificateAsync(certificateNumber);
+        return Ok(ApiResponse<CertificateVerifyResult>.Ok(result));
     }
 }
