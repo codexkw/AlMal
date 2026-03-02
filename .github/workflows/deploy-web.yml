@@ -57,15 +57,9 @@ jobs:
         run: dotnet ef database update --project src/AlMal.Infrastructure --startup-project src/AlMal.Web --configuration Release
 
       - name: Deploy to IIS via MSDeploy
+        shell: cmd
         run: |
-          $msdeploy = "C:\Program Files\IIS\Microsoft Web Deploy V3\msdeploy.exe"
-          & $msdeploy `
-            -verb:sync `
-            -source:contentPath="${{ github.workspace }}\publish\web" `
-            -dest:contentPath="${{ env.IIS_SITE_NAME }}",computerName="https://${{ secrets.DEPLOY_SERVER }}:8172/msdeploy.axd",userName="${{ secrets.DEPLOY_USERNAME }}",password="${{ secrets.DEPLOY_PASSWORD }}",authType="basic" `
-            -allowUntrusted `
-            -enableRule:AppOffline
-        shell: pwsh
+          "C:\Program Files\IIS\Microsoft Web Deploy V3\msdeploy.exe" -verb:sync -source:contentPath="%GITHUB_WORKSPACE%\publish\web" -dest:contentPath=${{ env.IIS_SITE_NAME }},computerName=https://${{ secrets.DEPLOY_SERVER }}:8172/msdeploy.axd,userName=${{ secrets.DEPLOY_USERNAME }},password=${{ secrets.DEPLOY_PASSWORD }},authType=basic -allowUntrusted -enableRule:AppOffline
 
       - name: Verify deployment
         run: |
