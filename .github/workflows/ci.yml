@@ -1,0 +1,32 @@
+name: CI - Build & Test
+
+on:
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    name: Build & Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 9 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "9.0.x"
+
+      - name: Restore NuGet packages
+        run: dotnet restore AlMal.sln
+
+      - name: Build solution (Release)
+        run: dotnet build AlMal.sln --configuration Release --no-restore
+
+      - name: Run tests
+        run: dotnet test AlMal.sln --no-build --configuration Release --verbosity normal

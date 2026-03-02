@@ -1,0 +1,51 @@
+{
+  "ConnectionStrings": {
+    "DefaultConnection": "{{SQL_CONNECTION_STRING}}",
+    "HangfireConnection": "{{HANGFIRE_CONNECTION_STRING}}",
+    "Redis": "{{REDIS_CONNECTION_STRING}}"
+  },
+  "Serilog": {
+    "MinimumLevel": {
+      "Default": "Warning",
+      "Override": {
+        "Microsoft.AspNetCore": "Warning",
+        "Microsoft.EntityFrameworkCore": "Warning",
+        "Hangfire": "Warning",
+        "AlMal": "Information"
+      }
+    },
+    "WriteTo": [
+      {
+        "Name": "Console",
+        "Args": {
+          "outputTemplate": "[{Timestamp:yyyy-MM-dd HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}"
+        }
+      },
+      {
+        "Name": "File",
+        "Args": {
+          "path": "Logs/almal-web-.log",
+          "rollingInterval": "Day",
+          "retainedFileCountLimit": 30,
+          "outputTemplate": "[{Timestamp:yyyy-MM-dd HH:mm:ss.fff} {Level:u3}] {SourceContext} | {Message:lj}{NewLine}{Exception}"
+        }
+      }
+    ]
+  },
+  "Logging": {
+    "LogLevel": {
+      "Default": "Warning",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+  "AllowedHosts": "almal.codexkw.co",
+  "Anthropic": {
+    "ApiKey": "{{ANTHROPIC_API_KEY}}"
+  },
+  "WhatsApp": {
+    "PhoneNumberId": "{{WHATSAPP_PHONE_NUMBER_ID}}",
+    "AccessToken": "{{WHATSAPP_ACCESS_TOKEN}}",
+    "VerifyToken": "{{WHATSAPP_VERIFY_TOKEN}}",
+    "WebhookUrl": "https://almal.codexkw.co/api/whatsapp/webhook"
+  }
+}
