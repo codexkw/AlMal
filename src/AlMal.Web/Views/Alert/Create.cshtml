@@ -1,0 +1,158 @@
+@model AlMal.Web.ViewModels.Alert.CreateAlertViewModel
+@{
+    ViewData["Title"] = "إنشاء تنبيه جديد";
+}
+
+<div class="container-fluid px-lg-4 py-3">
+
+    @* ===== PAGE HEADER ===== *@
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 fw-bold mb-1">
+                <i class="bi bi-plus-circle ms-2" style="color: var(--clr-primary)"></i>إنشاء تنبيه جديد
+            </h1>
+            <p class="text-muted mb-0">اختر نوع التنبيه وحدد الشروط</p>
+        </div>
+        <a asp-action="Index" class="btn btn-outline-secondary rounded-pill">
+            <i class="bi bi-arrow-right ms-1"></i>العودة
+        </a>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-12 col-lg-8 col-xl-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-4">
+                    <form asp-action="Create" method="post" x-data="alertForm()">
+                        @Html.AntiForgeryToken()
+
+                        @* Alert Type Selection *@
+                        <div class="mb-4">
+                            <label class="form-label fw-semibold">نوع التنبيه</label>
+                            <div class="row g-2">
+                                <div class="col-6 col-md-3">
+                                    <input type="radio" class="btn-check" name="Type" id="type-price"
+                                           value="0" x-model="type" checked />
+                                    <label class="btn btn-outline-primary w-100 py-3" for="type-price">
+                                        <i class="bi bi-currency-exchange d-block fs-4 mb-1"></i>
+                                        <span class="small">تنبيه سعر</span>
+                                    </label>
+                                </div>
+                                <div class="col-6 col-md-3">
+                                    <input type="radio" class="btn-check" name="Type" id="type-volume"
+                                           value="2" x-model="type" />
+                                    <label class="btn btn-outline-primary w-100 py-3" for="type-volume">
+                                        <i class="bi bi-bar-chart-fill d-block fs-4 mb-1"></i>
+                                        <span class="small">حجم تداول</span>
+                                    </label>
+                                </div>
+                                <div class="col-6 col-md-3">
+                                    <input type="radio" class="btn-check" name="Type" id="type-disclosure"
+                                           value="1" x-model="type" />
+                                    <label class="btn btn-outline-primary w-100 py-3" for="type-disclosure">
+                                        <i class="bi bi-file-earmark-text d-block fs-4 mb-1"></i>
+                                        <span class="small">إفصاح جديد</span>
+                                    </label>
+                                </div>
+                                <div class="col-6 col-md-3">
+                                    <input type="radio" class="btn-check" name="Type" id="type-index"
+                                           value="3" x-model="type" />
+                                    <label class="btn btn-outline-primary w-100 py-3" for="type-index">
+                                        <i class="bi bi-graph-up-arrow d-block fs-4 mb-1"></i>
+                                        <span class="small">تحرك المؤشر</span>
+                                    </label>
+                                </div>
+                            </div>
+                            <span asp-validation-for="Type" class="text-danger small"></span>
+                        </div>
+
+                        @* Stock Selection (shown for price/volume/disclosure) *@
+                        <div class="mb-4" x-show="needsStock()">
+                            <label asp-for="StockId" class="form-label fw-semibold">السهم</label>
+                            <select asp-for="StockId" class="form-select">
+                                <option value="">-- اختر السهم --</option>
+                                @foreach (var stock in Model.AvailableStocks)
+                                {
+                                    <option value="@stock.Id">@stock.NameAr (@stock.Symbol)</option>
+                                }
+                            </select>
+                            <span asp-validation-for="StockId" class="text-danger small"></span>
+                        </div>
+
+                        @* Condition (shown for price alerts) *@
+                        <div class="mb-4" x-show="type === '0'">
+                            <label asp-for="Condition" class="form-label fw-semibold">الشرط</label>
+                            <select asp-for="Condition" class="form-select">
+                                <option value="above">أعلى من (السعر يتجاوز الهدف)</option>
+                                <option value="below">أقل من (السعر ينخفض عن الهدف)</option>
+                            </select>
+                        </div>
+
+                        @* Target Value (shown for price alerts) *@
+                        <div class="mb-4" x-show="type === '0'">
+                            <label asp-for="TargetValue" class="form-label fw-semibold">السعر المستهدف (د.ك)</label>
+                            <div class="input-group">
+                                <input asp-for="TargetValue" class="form-control" type="number"
+                                       step="0.001" min="0" placeholder="0.000" />
+                                <span class="input-group-text">د.ك</span>
+                            </div>
+                            <span asp-validation-for="TargetValue" class="text-danger small"></span>
+                        </div>
+
+                        @* Target Value for Index (percentage threshold) *@
+                        <div class="mb-4" x-show="type === '3'">
+                            <label class="form-label fw-semibold">نسبة التغير المستهدفة (%)</label>
+                            <div class="input-group">
+                                <input name="TargetValue" class="form-control" type="number"
+                                       step="0.1" min="0.5" value="2.0" placeholder="2.0"
+                                       x-show="type === '3'" />
+                                <span class="input-group-text">%</span>
+                            </div>
+                            <div class="form-text">سيتم إرسال تنبيه عند تجاوز المؤشر لهذه النسبة</div>
+                        </div>
+
+                        @* Channel Selection *@
+                        <div class="mb-4">
+                            <label asp-for="Channel" class="form-label fw-semibold">قناة الإشعار</label>
+                            <select asp-for="Channel" class="form-select">
+                                <option value="0">التطبيق فقط</option>
+                                <option value="1">واتساب فقط</option>
+                                <option value="2" selected>التطبيق + واتساب</option>
+                            </select>
+                        </div>
+
+                        @* Submit *@
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-lg text-white rounded-pill"
+                                    style="background-color: var(--clr-primary);">
+                                <i class="bi bi-bell-fill ms-1"></i>إنشاء التنبيه
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function alertForm() {
+            return {
+                type: '0',
+                needsStock() {
+                    return this.type === '0' || this.type === '2' || this.type === '1';
+                }
+            };
+        }
+    </script>
+}
+
+@section Styles {
+    <style>
+        .btn-check:checked + .btn-outline-primary {
+            background-color: var(--clr-primary) !important;
+            border-color: var(--clr-primary) !important;
+            color: #fff !important;
+        }
+    </style>
+}

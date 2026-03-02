@@ -1,5 +1,7 @@
+using AlMal.Application.Interfaces;
 using AlMal.Domain.Entities;
 using AlMal.Web.ViewModels.Account;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 
@@ -9,13 +11,19 @@ public class AccountController : Controller
 {
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly SignInManager<ApplicationUser> _signInManager;
+    private readonly IWhatsAppService _whatsAppService;
+
+    // In-memory verification codes (production should use Redis/DB)
+    private static readonly Dictionary<string, (string Code, DateTime Expiry)> _verificationCodes = new();
 
     public AccountController(
         UserManager<ApplicationUser> userManager,
-        SignInManager<ApplicationUser> signInManager)
+        SignInManager<ApplicationUser> signInManager,
+        IWhatsAppService whatsAppService)
     {
         _userManager = userManager;
         _signInManager = signInManager;
+        _whatsAppService = whatsAppService;
     }
 
     [HttpGet]
@@ -120,5 +128,113 @@ public class AccountController : Controller
     {
         await _signInManager.SignOutAsync();
         return RedirectToAction("Index", "Home");
+    }
+
+    /// <summary>
+    /// POST /Account/WhatsAppOptIn — Enter phone number, send verification code.
+    /// </summary>
+    [HttpPost]
+    [Authorize]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> WhatsAppOptIn(string phoneNumber)
+    {
+        if (string.IsNullOrWhiteSpace(phoneNumber))
+        {
+            TempData["WhatsAppError"] = "يرجى إدخال رقم الهاتف";
+            return RedirectToAction("Profile");
+        }
+
+        var user = await _userManager.GetUserAsync(User);
+        if (user == null)
+            return Unauthorized();
+
+        // Generate 6-digit code
+        var code = new Random().Next(100000, 999999).ToString();
+        _verificationCodes[user.Id] = (code, DateTime.UtcNow.AddMinutes(10));
+
+        // Save phone number temporarily
+        user.WhatsAppNumber = phoneNumber;
+        await _userManager.UpdateAsync(user);
+
+        // Send verification code
+        var sent = await _whatsAppService.SendVerificationCodeAsync(phoneNumber, code);
+
+        if (sent)
+        {
+            TempData["WhatsAppMessage"] = "تم إرسال رمز التحقق إلى واتساب";
+            TempData["WhatsAppPendingVerification"] = "true";
+        }
+        else
+        {
+            TempData["WhatsAppError"] = "فشل إرسال رمز التحقق. تأكد من صحة الرقم وحاول مرة أخرى";
+        }
+
+        return RedirectToAction("Profile");
+    }
+
+    /// <summary>
+    /// POST /Account/WhatsAppVerify — Verify code, set WhatsAppOptIn = true.
+    /// </summary>
+    [HttpPost]
+    [Authorize]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> WhatsAppVerify(string verificationCode)
+    {
+        if (string.IsNullOrWhiteSpace(verificationCode))
+        {
+            TempData["WhatsAppError"] = "يرجى إدخال رمز التحقق";
+            return RedirectToAction("Profile");
+        }
+
+        var user = await _userManager.GetUserAsync(User);
+        if (user == null)
+            return Unauthorized();
+
+        if (!_verificationCodes.TryGetValue(user.Id, out var stored))
+        {
+            TempData["WhatsAppError"] = "لم يتم إرسال رمز تحقق. حاول مرة أخرى";
+            return RedirectToAction("Profile");
+        }
+
+        if (DateTime.UtcNow > stored.Expiry)
+        {
+            _verificationCodes.Remove(user.Id);
+            TempData["WhatsAppError"] = "انتهت صلاحية رمز التحقق. أعد الإرسال";
+            return RedirectToAction("Profile");
+        }
+
+        if (stored.Code != verificationCode.Trim())
+        {
+            TempData["WhatsAppError"] = "رمز التحقق غير صحيح";
+            return RedirectToAction("Profile");
+        }
+
+        // Verification successful
+        _verificationCodes.Remove(user.Id);
+        user.WhatsAppOptIn = true;
+        await _userManager.UpdateAsync(user);
+
+        TempData["WhatsAppMessage"] = "تم تفعيل إشعارات واتساب بنجاح";
+        return RedirectToAction("Profile");
+    }
+
+    /// <summary>
+    /// POST /Account/WhatsAppOptOut — Disable WhatsApp notifications.
+    /// </summary>
+    [HttpPost]
+    [Authorize]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> WhatsAppOptOut()
+    {
+        var user = await _userManager.GetUserAsync(User);
+        if (user == null)
+            return Unauthorized();
+
+        user.WhatsAppOptIn = false;
+        user.WhatsAppNumber = null;
+        await _userManager.UpdateAsync(user);
+
+        TempData["WhatsAppMessage"] = "تم إلغاء إشعارات واتساب";
+        return RedirectToAction("Profile");
     }
 }

@@ -234,6 +234,156 @@ public class ClaudeAiService : IAiAnalysisService
         return result;
     }
 
+    /// <inheritdoc />
+    public async Task<string> AnswerMarketQuestionAsync(string question, string? userId = null, CancellationToken ct = default)
+    {
+        // Build market context
+        var contextParts = new List<string>();
+
+        // Latest market indices
+        var indices = await _context.MarketIndices
+            .AsNoTracking()
+            .OrderBy(i => i.Type)
+            .Take(10)
+            .ToListAsync(ct);
+
+        if (indices.Count > 0)
+        {
+            var indicesText = string.Join("\n", indices.Select(i =>
+                $"  {i.NameAr}: {i.Value:F2} (التغير: {i.ChangePercent:F2}%)"));
+            contextParts.Add($"مؤشرات السوق:\n{indicesText}");
+        }
+
+        // Check if question mentions a specific stock symbol
+        var allSymbols = await _context.Stocks
+            .AsNoTracking()
+            .Where(s => s.IsActive)
+            .Select(s => new { s.Symbol, s.NameAr, s.Id })
+            .ToListAsync(ct);
+
+        var mentionedStock = allSymbols.FirstOrDefault(s =>
+            question.Contains(s.Symbol, StringComparison.OrdinalIgnoreCase) ||
+            question.Contains(s.NameAr, StringComparison.Ordinal));
+
+        if (mentionedStock != null)
+        {
+            var stock = await _context.Stocks
+                .AsNoTracking()
+                .Include(s => s.Sector)
+                .FirstOrDefaultAsync(s => s.Id == mentionedStock.Id, ct);
+
+            if (stock != null)
+            {
+                contextParts.Add(
+                    $"بيانات السهم المذكور:\n" +
+                    $"  الاسم: {stock.NameAr} ({stock.Symbol})\n" +
+                    $"  القطاع: {stock.Sector.NameAr}\n" +
+                    $"  السعر: {stock.LastPrice?.ToString("F3") ?? "غير متوفر"} د.ك\n" +
+                    $"  التغير: {stock.DayChange?.ToString("F3") ?? "0"} ({stock.DayChangePercent?.ToString("F2") ?? "0"}%)");
+
+                // Recent prices
+                var recentPrices = await _context.StockPrices
+                    .AsNoTracking()
+                    .Where(sp => sp.StockId == stock.Id)
+                    .OrderByDescending(sp => sp.Date)
+                    .Take(5)
+                    .ToListAsync(ct);
+
+                if (recentPrices.Count > 0)
+                {
+                    var pricesText = string.Join("\n", recentPrices.Select(p =>
+                        $"  {p.Date:yyyy-MM-dd}: إغلاق {p.Close:F3} | حجم {p.Volume:N0}"));
+                    contextParts.Add($"أسعار آخر 5 أيام:\n{pricesText}");
+                }
+            }
+        }
+
+        // Recent disclosures (last 7 days)
+        var sevenDaysAgo = DateTime.UtcNow.AddDays(-7);
+        var recentDisclosures = await _context.Disclosures
+            .AsNoTracking()
+            .Include(d => d.Stock)
+            .Where(d => d.PublishedDate >= sevenDaysAgo)
+            .OrderByDescending(d => d.PublishedDate)
+            .Take(5)
+            .ToListAsync(ct);
+
+        if (recentDisclosures.Count > 0)
+        {
+            var disclosuresText = string.Join("\n", recentDisclosures.Select(d =>
+                $"  [{d.PublishedDate:yyyy-MM-dd}] {d.Stock.NameAr}: {d.TitleAr}"));
+            contextParts.Add($"أحدث الإفصاحات:\n{disclosuresText}");
+        }
+
+        // Recent news (last 7 days)
+        var recentNews = await _context.NewsArticles
+            .AsNoTracking()
+            .Where(n => n.PublishedAt >= sevenDaysAgo)
+            .OrderByDescending(n => n.PublishedAt)
+            .Take(5)
+            .ToListAsync(ct);
+
+        if (recentNews.Count > 0)
+        {
+            var newsText = string.Join("\n", recentNews.Select(n =>
+                $"  [{n.PublishedAt:yyyy-MM-dd}] {n.TitleAr}"));
+            contextParts.Add($"أحدث الأخبار:\n{newsText}");
+        }
+
+        // Top gainers/losers
+        var topGainers = await _context.Stocks
+            .AsNoTracking()
+            .Where(s => s.IsActive && s.DayChangePercent.HasValue && s.DayChangePercent > 0)
+            .OrderByDescending(s => s.DayChangePercent)
+            .Take(5)
+            .ToListAsync(ct);
+
+        var topLosers = await _context.Stocks
+            .AsNoTracking()
+            .Where(s => s.IsActive && s.DayChangePercent.HasValue && s.DayChangePercent < 0)
+            .OrderBy(s => s.DayChangePercent)
+            .Take(5)
+            .ToListAsync(ct);
+
+        if (topGainers.Count > 0)
+        {
+            var gainersText = string.Join("\n", topGainers.Select(s =>
+                $"  {s.NameAr} ({s.Symbol}): +{s.DayChangePercent:F2}%"));
+            contextParts.Add($"الأسهم الأكثر ارتفاعاً:\n{gainersText}");
+        }
+
+        if (topLosers.Count > 0)
+        {
+            var losersText = string.Join("\n", topLosers.Select(s =>
+                $"  {s.NameAr} ({s.Symbol}): {s.DayChangePercent:F2}%"));
+            contextParts.Add($"الأسهم الأكثر انخفاضاً:\n{losersText}");
+        }
+
+        var contextStr = string.Join("\n\n", contextParts);
+
+        var systemPrompt =
+            "أنت مساعد تعليمي متخصص في سوق الكويت المالي (بورصة الكويت). " +
+            "تجيب على أسئلة المستخدمين حول السوق والأسهم بأسلوب تعليمي مبسط بالعربية. " +
+            "لا تقدم نصائح استثمارية أو توصيات بالشراء أو البيع. " +
+            "لا تتنبأ بالأسعار المستقبلية. " +
+            "أجب بإيجاز (3-5 فقرات كحد أقصى). " +
+            "اختم دائماً بعبارة: هذا تحليل تعليمي وليس نصيحة استثمارية";
+
+        var userPrompt =
+            $"سؤال المستخدم: {question}\n\n" +
+            $"السياق الحالي للسوق:\n{contextStr}";
+
+        var response = await CallClaudeAsync(systemPrompt, userPrompt, ct);
+
+        // Ensure disclaimer is present
+        if (!response.Contains("هذا تحليل تعليمي وليس نصيحة استثمارية"))
+        {
+            response += "\n\nهذا تحليل تعليمي وليس نصيحة استثمارية";
+        }
+
+        return response;
+    }
+
     /// <summary>
     /// Core method to call the Claude API via Anthropic.SDK.
     /// Returns the text response or a fallback message on failure.

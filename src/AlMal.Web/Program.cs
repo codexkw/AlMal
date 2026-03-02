@@ -99,6 +99,10 @@ try
     // AI service
     builder.Services.AddScoped<IAiAnalysisService, ClaudeAiService>();
 
+    // WhatsApp service
+    builder.Services.AddHttpClient<WhatsAppClient>();
+    builder.Services.AddScoped<IWhatsAppService, WhatsAppClient>();
+
     // Services
     builder.Services.AddScoped<ITokenService, TokenService>();
     builder.Services.AddScoped<MarketDataScraperJob>();
@@ -108,6 +112,8 @@ try
     builder.Services.AddScoped<NewsFetcherJob>();
     builder.Services.AddScoped<AiDisclosureProcessorJob>();
     builder.Services.AddScoped<AiNewsProcessorJob>();
+    builder.Services.AddScoped<AlertEngineJob>();
+    builder.Services.AddScoped<DailyMarketSummaryJob>();
 
     builder.Services.AddSignalR();
     builder.Services.AddControllersWithViews();
@@ -188,6 +194,16 @@ try
             "ai-news-processor",
             job => job.ExecuteAsync(CancellationToken.None),
             "*/10 * * * *"); // Every 10 minutes
+
+        RecurringJob.AddOrUpdate<AlertEngineJob>(
+            "alert-engine",
+            job => job.ExecuteAsync(CancellationToken.None),
+            "*/30 * * * * *"); // Every 30 seconds (job self-checks market hours)
+
+        RecurringJob.AddOrUpdate<DailyMarketSummaryJob>(
+            "daily-market-summary",
+            job => job.ExecuteAsync(CancellationToken.None),
+            "45 9 * * 0-4"); // 9:45 AM UTC = 12:45 PM KWT, Sun-Thu
     }
 
     app.MapStaticAssets();

@@ -465,32 +465,32 @@
 
 ### 6.1 WhatsApp Integration
 
-- [ ] Create `IWhatsAppService` interface in Application
-- [ ] Create `WhatsAppClient` in Infrastructure/ExternalApis
-- [ ] Implement WhatsApp Business Cloud API connection
-- [ ] Build phone number opt-in flow (enter number → verify code)
-- [ ] Implement alert delivery via WhatsApp (price, disclosure, index, volume)
-- [ ] Create WhatsApp message templates (Arabic)
-- [ ] Create Hangfire job: `AlertEngineJob` (every 30s during market hours)
-- [ ] Verify: Alerts delivered via WhatsApp to opted-in users
+- [✅] Create `IWhatsAppService` interface in Application (2026-03-02)
+- [✅] Create `WhatsAppClient` in Infrastructure/ExternalApis (2026-03-02)
+- [✅] Implement WhatsApp Business Cloud API connection (2026-03-02)
+- [✅] Build phone number opt-in flow (enter number → verify code) (2026-03-02)
+- [✅] Implement alert delivery via WhatsApp (price, disclosure, index, volume) (2026-03-02)
+- [✅] Create WhatsApp message templates (Arabic) (2026-03-02)
+- [✅] Create Hangfire job: `AlertEngineJob` (every 30s during market hours) (2026-03-02)
+- [✅] Verify: Alerts delivered via WhatsApp to opted-in users (2026-03-02)
 
 ### 6.2 WhatsApp Market Assistant
 
-- [ ] Implement webhook for incoming WhatsApp messages
-- [ ] Create `AnswerMarketQuestionAsync` in ClaudeAiClient
-- [ ] Build context retrieval (latest disclosures, prices, news for query)
-- [ ] Wire webhook → Claude API → WhatsApp reply
-- [ ] Create Hangfire job: `DailyMarketSummaryJob` (12:45 PM KWT)
-- [ ] Verify: Users can ask market questions via WhatsApp and get AI answers
+- [✅] Implement webhook for incoming WhatsApp messages (2026-03-02)
+- [✅] Create `AnswerMarketQuestionAsync` in ClaudeAiClient (2026-03-02)
+- [✅] Build context retrieval (latest disclosures, prices, news for query) (2026-03-02)
+- [✅] Wire webhook → Claude API → WhatsApp reply (2026-03-02)
+- [✅] Create Hangfire job: `DailyMarketSummaryJob` (12:45 PM KWT) (2026-03-02)
+- [✅] Verify: Users can ask market questions via WhatsApp and get AI answers (2026-03-02)
 
 ### 6.3 Alert System
 
-- [ ] Build alert management UI in web (create, list, enable/disable, delete)
-- [ ] Implement alert evaluation logic (price crosses target, volume anomaly, etc.)
-- [ ] Implement in-app notification system (notification bell)
-- [ ] Build notification dropdown (mark read, click to navigate)
-- [ ] Create alert API endpoints
-- [ ] Verify: Alerts trigger correctly and notify via app + WhatsApp
+- [✅] Build alert management UI in web (create, list, enable/disable, delete) (2026-03-02)
+- [✅] Implement alert evaluation logic (price crosses target, volume anomaly, etc.) (2026-03-02)
+- [✅] Implement in-app notification system (notification bell) (2026-03-02)
+- [✅] Build notification dropdown (mark read, click to navigate) (2026-03-02)
+- [✅] Create alert API endpoints (2026-03-02)
+- [✅] Verify: Alerts trigger correctly and notify via app + WhatsApp (2026-03-02)
 
 ### 6.4 Admin: Alerts & Analytics
 

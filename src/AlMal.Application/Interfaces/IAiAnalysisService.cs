@@ -22,4 +22,10 @@ public interface IAiAnalysisService
     /// Generates contextual analysis, sentiment, and background for a news article.
     /// </summary>
     Task<NewsContextResult> GenerateNewsContextAsync(long newsArticleId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Answers a market-related question from a user (WhatsApp Market Assistant).
+    /// Builds context from latest stock prices, recent disclosures, and news.
+    /// </summary>
+    Task<string> AnswerMarketQuestionAsync(string question, string? userId = null, CancellationToken ct = default);
 }
