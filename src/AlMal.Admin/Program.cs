@@ -2,6 +2,7 @@ using AlMal.Domain.Entities;
 using AlMal.Infrastructure.Data;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.HttpOverrides;
 using Serilog;
 
 Log.Logger = new LoggerConfiguration()
@@ -11,6 +12,14 @@ Log.Logger = new LoggerConfiguration()
 try
 {
     var builder = WebApplication.CreateBuilder(args);
+
+    // Cloudflare forwarded headers
+    builder.Services.Configure<ForwardedHeadersOptions>(options =>
+    {
+        options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+        options.KnownNetworks.Clear();
+        options.KnownProxies.Clear();
+    });
 
     // Serilog
     builder.Host.UseSerilog((context, services, configuration) => configuration
@@ -55,10 +64,9 @@ try
     if (!app.Environment.IsDevelopment())
     {
         app.UseExceptionHandler("/Home/Error");
-        app.UseHsts();
     }
 
-    app.UseHttpsRedirection();
+    app.UseForwardedHeaders();
     app.UseSerilogRequestLogging();
     app.UseRouting();
 
