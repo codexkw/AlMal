@@ -1,0 +1,112 @@
+@model AlMal.Admin.ViewModels.ModerationQueueViewModel
+@{
+    ViewData["Title"] = "الإشراف على المحتوى";
+}
+
+@* ملخص المنشورات المبلّغ عنها *@
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+    <div>
+        <span class="text-muted">إجمالي المنشورات المبلّغ عنها: @Model.TotalCount</span>
+    </div>
+    <a asp-action="Users" class="btn btn-outline-primary">
+        <i class="bi bi-people me-1"></i>إدارة المستخدمين
+    </a>
+</div>
+
+@* جدول المنشورات المبلّغ عنها *@
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th style="width: 5%;">#</th>
+                        <th style="width: 10%;">النوع</th>
+                        <th style="width: 35%;">المحتوى</th>
+                        <th style="width: 15%;">المستخدم</th>
+                        <th style="width: 15%;">التاريخ</th>
+                        <th style="width: 20%;">الإجراءات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.Items.Count == 0)
+                    {
+                        <tr>
+                            <td colspan="6" class="text-center text-muted py-4">
+                                <i class="bi bi-check-circle fs-3 d-block mb-2"></i>
+                                لا توجد منشورات مبلّغ عنها
+                            </td>
+                        </tr>
+                    }
+                    @foreach (var item in Model.Items)
+                    {
+                        <tr>
+                            <td>@item.Id</td>
+                            <td>
+                                <span class="badge bg-warning text-dark">@item.Type</span>
+                            </td>
+                            <td>
+                                <div style="max-width: 400px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                    @item.Content
+                                </div>
+                            </td>
+                            <td>@item.UserDisplayName</td>
+                            <td>
+                                <span class="text-muted small">@item.CreatedAt.ToString("yyyy-MM-dd HH:mm")</span>
+                            </td>
+                            <td>
+                                <div class="d-flex gap-1">
+                                    <form asp-action="Approve" method="post" class="d-inline">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="postId" value="@item.Id" />
+                                        <button type="submit" class="btn btn-sm btn-outline-success" title="موافقة">
+                                            <i class="bi bi-check-lg me-1"></i>موافقة
+                                        </button>
+                                    </form>
+                                    <form asp-action="Delete" method="post" class="d-inline"
+                                          onsubmit="return confirm('هل أنت متأكد من حذف هذا المنشور؟');">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="postId" value="@item.Id" />
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" title="حذف">
+                                            <i class="bi bi-trash me-1"></i>حذف
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@* ترقيم الصفحات *@
+@if (Model.TotalPages > 1)
+{
+    <nav aria-label="ترقيم الصفحات" class="mt-4">
+        <ul class="pagination justify-content-center">
+            <li class="page-item @(Model.Page <= 1 ? "disabled" : "")">
+                <a class="page-link" asp-action="Index"
+                   asp-route-page="@(Model.Page - 1)">
+                    السابق
+                </a>
+            </li>
+            @for (var i = 1; i <= Model.TotalPages; i++)
+            {
+                <li class="page-item @(i == Model.Page ? "active" : "")">
+                    <a class="page-link" asp-action="Index"
+                       asp-route-page="@i">
+                        @i
+                    </a>
+                </li>
+            }
+            <li class="page-item @(Model.Page >= Model.TotalPages ? "disabled" : "")">
+                <a class="page-link" asp-action="Index"
+                   asp-route-page="@(Model.Page + 1)">
+                    التالي
+                </a>
+            </li>
+        </ul>
+    </nav>
+}

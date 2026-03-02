@@ -261,7 +261,12 @@
                 </a>
             </li>
             <li class="sidebar-nav-item">
-                <a href="#">
+                <a href="/Moderation" class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "Moderation" && ViewContext.RouteData.Values["action"]?.ToString() == "Index" ? "active" : "")">
+                    <i class="bi bi-shield-exclamation"></i>الإشراف
+                </a>
+            </li>
+            <li class="sidebar-nav-item">
+                <a href="/Moderation/Users" class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "Moderation" && ViewContext.RouteData.Values["action"]?.ToString() == "Users" ? "active" : "")">
                     <i class="bi bi-people-fill"></i>المستخدمون
                 </a>
             </li>

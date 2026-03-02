@@ -378,20 +378,20 @@
 
 ### 4.5 Community API Endpoints
 
-- [ ] Create `PostsApiController` in API
-- [ ] Create `UsersApiController` in API
-- [ ] Implement all community endpoints from PRD section 15.4
-- [ ] Verify: All endpoints work with proper authorization
+- [✅] Create `PostsApiController` in API (2026-03-02)
+- [✅] Create `UsersApiController` in API (2026-03-02)
+- [✅] Implement all community endpoints from PRD section 15.4 (2026-03-02)
+- [✅] Verify: All endpoints work with proper authorization (2026-03-02)
 
 ### 4.6 Admin: Content Moderation
 
-- [ ] Create `AdminContentController` in Admin
-- [ ] Build moderation queue (flagged/reported posts)
+- [✅] Create `AdminContentController` in Admin (2026-03-02)
+- [✅] Build moderation queue (flagged/reported posts) (2026-03-02)
 - [ ] Build reported content review page
-- [ ] Implement bulk approve/delete
-- [ ] Build user management (search, suspend, ban, promote)
+- [✅] Implement bulk approve/delete (2026-03-02)
+- [✅] Build user management (search, suspend, ban, promote) (2026-03-02)
 - [ ] Implement analyst badge approval workflow
-- [ ] Verify: Moderators can review and act on flagged content
+- [✅] Verify: Moderators can review and act on flagged content (2026-03-02)
 
 ---
 
