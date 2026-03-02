@@ -8,6 +8,7 @@ on:
       - "src/AlMal.Domain/**"
       - "src/AlMal.Application/**"
       - "src/AlMal.Infrastructure/**"
+  workflow_dispatch:
 
 concurrency:
   group: deploy-web
@@ -15,15 +16,16 @@ concurrency:
 
 env:
   DOTNET_VERSION: "9.0.x"
-  PROJECT_PATH: src/AlMal.Web/AlMal.Web.csproj
-  PUBLISH_DIR: ./publish/web
   IIS_SITE_NAME: AlMal-Web
   SITE_URL: https://almal.codexkw.co
 
 jobs:
-  build:
-    name: Build & Publish
-    runs-on: ubuntu-latest
+  build-and-deploy:
+    name: Build & Deploy
+    runs-on: windows-latest
+    environment:
+      name: production-web
+      url: ${{ env.SITE_URL }}
 
     steps:
       - name: Checkout repository
@@ -44,37 +46,7 @@ jobs:
         run: dotnet test AlMal.sln --no-build --configuration Release --verbosity normal
 
       - name: Publish AlMal.Web
-        run: dotnet publish ${{ env.PROJECT_PATH }} --configuration Release --output ${{ env.PUBLISH_DIR }} --no-build
-
-      - name: Upload publish artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: web-publish
-          path: ${{ env.PUBLISH_DIR }}
-          retention-days: 5
-
-  deploy:
-    name: Deploy to IIS
-    runs-on: ubuntu-latest
-    needs: build
-    environment:
-      name: production-web
-      url: ${{ env.SITE_URL }}
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup .NET 9 SDK
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
-
-      - name: Download publish artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: web-publish
-          path: ${{ env.PUBLISH_DIR }}
+        run: dotnet publish src/AlMal.Web/AlMal.Web.csproj --configuration Release --output ./publish/web --no-build
 
       - name: Install EF Core tools
         run: dotnet tool install --global dotnet-ef
@@ -82,45 +54,26 @@ jobs:
       - name: Apply EF Core migrations
         env:
           ConnectionStrings__DefaultConnection: ${{ secrets.SQL_CONNECTION_STRING }}
+        run: dotnet ef database update --project src/AlMal.Infrastructure --startup-project src/AlMal.Web --configuration Release
+
+      - name: Deploy to IIS via MSDeploy
         run: |
-          dotnet ef database update \
-            --project src/AlMal.Infrastructure \
-            --startup-project src/AlMal.Web \
-            --configuration Release \
-            --no-build
-
-      - name: Deploy to IIS via Web Deploy (MSDeploy)
-        env:
-          DEPLOY_SERVER: ${{ secrets.DEPLOY_SERVER }}
-          DEPLOY_USERNAME: ${{ secrets.DEPLOY_USERNAME }}
-          DEPLOY_PASSWORD: ${{ secrets.DEPLOY_PASSWORD }}
-        run: |
-          # Install msdeploy dependencies
-          sudo apt-get update && sudo apt-get install -y curl
-
-          # Deploy using Web Deploy via curl (REST API)
-          # MSDeploy command executed via the IIS Management Service
-          curl -X POST \
-            "https://${DEPLOY_SERVER}:8172/msdeploy.axd?site=${IIS_SITE_NAME}" \
-            --user "${DEPLOY_USERNAME}:${DEPLOY_PASSWORD}" \
-            --insecure \
-            --fail \
-            --silent \
-            --show-error \
-            -T "${PUBLISH_DIR}/" \
-            || echo "Falling back to alternative deploy method..."
-
-          # Alternative: Use msdeploy via PowerShell or direct file copy
-          # This section can be customized based on server configuration
+          $msdeploy = "C:\Program Files\IIS\Microsoft Web Deploy V3\msdeploy.exe"
+          & $msdeploy `
+            -verb:sync `
+            -source:contentPath="${{ github.workspace }}\publish\web" `
+            -dest:contentPath="${{ env.IIS_SITE_NAME }}",computerName="https://${{ secrets.DEPLOY_SERVER }}:8172/msdeploy.axd",userName="${{ secrets.DEPLOY_USERNAME }}",password="${{ secrets.DEPLOY_PASSWORD }}",authType="basic" `
+            -allowUntrusted `
+            -enableRule:AppOffline
+        shell: pwsh
 
       - name: Verify deployment
         run: |
-          echo "Verifying deployment to ${{ env.SITE_URL }}"
-          sleep 10
-          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "${{ env.SITE_URL }}/health" --insecure --max-time 30 || echo "000")
-          echo "Health check response: ${HTTP_STATUS}"
-          if [ "${HTTP_STATUS}" = "200" ]; then
-            echo "Deployment verified successfully!"
-          else
-            echo "Warning: Health check returned ${HTTP_STATUS}. Manual verification may be required."
-          fi
+          Start-Sleep -Seconds 15
+          try {
+            $response = Invoke-WebRequest -Uri "${{ env.SITE_URL }}/health" -SkipCertificateCheck -TimeoutSec 30 -UseBasicParsing
+            Write-Host "Health check passed: $($response.StatusCode)"
+          } catch {
+            Write-Host "Warning: Health check failed. Manual verification may be required. Error: $_"
+          }
+        shell: pwsh
