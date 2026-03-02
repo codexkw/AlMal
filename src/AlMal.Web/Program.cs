@@ -158,11 +158,8 @@ try
         }
     }
 
-    // Seed database (Development only)
-    if (app.Environment.IsDevelopment())
-    {
-        await DatabaseSeeder.SeedAsync(app.Services);
-    }
+    // Seed database (admin user, sectors, stocks, indices)
+    await DatabaseSeeder.SeedAsync(app.Services);
 
     if (!app.Environment.IsDevelopment())
     {

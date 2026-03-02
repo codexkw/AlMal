@@ -61,6 +61,36 @@ try
 
     var app = builder.Build();
 
+    // Seed roles and admin user
+    using (var scope = app.Services.CreateScope())
+    {
+        var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+        string[] roles = ["User", "ProAnalyst", "CertifiedAnalyst", "Moderator", "Admin", "SuperAdmin"];
+        foreach (var role in roles)
+        {
+            if (!await roleManager.RoleExistsAsync(role))
+                await roleManager.CreateAsync(new IdentityRole(role));
+        }
+
+        // Create SuperAdmin if not exists
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        if (await userManager.FindByEmailAsync("admin@almal.kw") == null)
+        {
+            var admin = new ApplicationUser
+            {
+                UserName = "admin@almal.kw",
+                Email = "admin@almal.kw",
+                DisplayName = "مدير النظام",
+                EmailConfirmed = true,
+                IsVerified = true,
+                IsActive = true
+            };
+            var result = await userManager.CreateAsync(admin, "Admin@AlMal2026!");
+            if (result.Succeeded)
+                await userManager.AddToRoleAsync(admin, "SuperAdmin");
+        }
+    }
+
     if (!app.Environment.IsDevelopment())
     {
         app.UseExceptionHandler("/Home/Error");

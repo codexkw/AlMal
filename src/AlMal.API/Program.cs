@@ -98,10 +98,12 @@ try
 
     var app = builder.Build();
 
-    if (app.Environment.IsDevelopment())
+    app.UseOpenApi();
+    app.UseSwaggerUi(options =>
     {
-        app.MapOpenApi();
-    }
+        options.DocumentTitle = "AlMal API";
+        options.Path = "/swagger";
+    });
 
     app.UseForwardedHeaders();
     app.UseSerilogRequestLogging();
