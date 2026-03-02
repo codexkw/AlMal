@@ -110,6 +110,7 @@ try
     app.UseAuthorization();
 
     app.MapHealthChecks("/health");
+    app.MapGet("/", () => Results.Ok(new { name = "AlMal API", version = "1.0", status = "running", health = "/health" }));
     app.MapControllers();
 
     app.Run();

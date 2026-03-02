@@ -320,6 +320,12 @@
                 @if (User.Identity != null && User.Identity.IsAuthenticated)
                 {
                     <span class="text-muted small">@User.Identity.Name</span>
+                    <form asp-controller="Account" asp-action="Logout" method="post" class="d-inline">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-outline-danger btn-sm">
+                            <i class="bi bi-box-arrow-right"></i> خروج
+                        </button>
+                    </form>
                 }
             </div>
         </header>
