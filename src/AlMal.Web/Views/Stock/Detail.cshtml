@@ -1,0 +1,808 @@
+@model AlMal.Web.ViewModels.Stock.StockDetailViewModel
+@using AlMal.Domain.Enums
+@{
+    ViewData["Title"] = $"{Model.NameAr} ({Model.Symbol})";
+    var priceColorClass = Model.DayChange >= 0 ? "text-success" : "text-danger";
+    var priceArrow = Model.DayChange >= 0 ? "bi-arrow-up-short" : "bi-arrow-down-short";
+    var priceSign = Model.DayChange >= 0 ? "+" : "";
+}
+
+<div x-data="{
+    activeTab: 'overview',
+    watchlisted: @(Model.IsInWatchlist ? "true" : "false"),
+    chartRange: '1M',
+    chartInstance: null,
+    areaSeries: null,
+    explainLoading: false,
+    explainResult: '',
+    expandedDisclosure: null
+}" class="container-fluid px-lg-4 py-3">
+
+    @* ===== STOCK HEADER ===== *@
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body p-3 p-md-4">
+            <div class="row align-items-center g-3">
+                @* Name, Symbol, Sector *@
+                <div class="col-12 col-md-6">
+                    <div class="d-flex align-items-center flex-wrap gap-2 mb-2">
+                        <h1 class="h3 fw-bold mb-0">@Model.NameAr</h1>
+                        <span class="badge bg-dark bg-opacity-10 text-dark fs-6 fw-semibold">@Model.Symbol</span>
+                    </div>
+                    <a asp-controller="Sector" asp-action="Detail" asp-route-id="@Model.SectorId"
+                       class="badge bg-primary bg-opacity-10 text-primary text-decoration-none">
+                        <i class="bi bi-building me-1"></i>@Model.SectorNameAr
+                    </a>
+                </div>
+
+                @* Price & Change *@
+                <div class="col-12 col-md-4 text-md-center">
+                    @if (Model.LastPrice.HasValue)
+                    {
+                        <div class="d-flex align-items-baseline justify-content-md-center gap-2 flex-wrap">
+                            <span class="fs-2 fw-bold lh-1">@Model.LastPrice.Value.ToString("N3")</span>
+                            <span class="text-muted small">د.ك</span>
+                        </div>
+                        <div class="d-flex align-items-center justify-content-md-center gap-2 mt-1">
+                            <span class="@priceColorClass fw-semibold">
+                                <i class="bi @priceArrow"></i>
+                                @(priceSign)@(Model.DayChange?.ToString("N3") ?? "0.000")
+                            </span>
+                            <span class="badge @(Model.DayChangePercent >= 0 ? "bg-success" : "bg-danger") bg-opacity-10 @priceColorClass">
+                                @(priceSign)@(Model.DayChangePercent?.ToString("N2") ?? "0.00")%
+                            </span>
+                        </div>
+                    }
+                    else
+                    {
+                        <span class="text-muted">لا يوجد سعر</span>
+                    }
+                </div>
+
+                @* Action Buttons *@
+                <div class="col-12 col-md-2 text-md-start">
+                    <div class="d-flex gap-2 justify-content-md-end">
+                        @* Watchlist Star *@
+                        <button type="button"
+                                class="btn btn-outline-warning rounded-pill px-3"
+                                x-on:click="
+                                    fetch('/Watchlist/Toggle', {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': document.querySelector('input[name=__RequestVerificationToken]')?.value || '' },
+                                        body: JSON.stringify({ symbol: '@Model.Symbol' })
+                                    }).then(r => { if (r.ok) watchlisted = !watchlisted; });
+                                "
+                                :title="watchlisted ? 'إزالة من المتابعة' : 'أضف للمتابعة'">
+                            <i class="bi" :class="watchlisted ? 'bi-star-fill text-warning' : 'bi-star'"></i>
+                            <span class="d-none d-sm-inline me-1" x-text="watchlisted ? 'متابَع' : 'أضف للمتابعة'"></span>
+                        </button>
+                        @* Alert Bell *@
+                        <button type="button"
+                                class="btn btn-outline-secondary rounded-pill px-3"
+                                title="تنبيه السعر"
+                                data-bs-toggle="modal"
+                                data-bs-target="#priceAlertModal">
+                            <i class="bi bi-bell"></i>
+                            <span class="d-none d-sm-inline me-1">تنبيه السعر</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @* ===== TAB NAVIGATION ===== *@
+    <ul class="nav nav-pills nav-fill flex-nowrap overflow-auto mb-4 gap-1 pb-1" role="tablist"
+        style="scrollbar-width: thin;">
+        <li class="nav-item flex-shrink-0">
+            <button class="nav-link rounded-pill px-3 py-2"
+                    :class="activeTab === 'overview' && 'active'"
+                    x-on:click="activeTab = 'overview'" role="tab">
+                <i class="bi bi-eye me-1"></i>نظرة عامة
+            </button>
+        </li>
+        <li class="nav-item flex-shrink-0">
+            <button class="nav-link rounded-pill px-3 py-2"
+                    :class="activeTab === 'chart' && 'active'"
+                    x-on:click="activeTab = 'chart'; $nextTick(() => initChart())" role="tab">
+                <i class="bi bi-graph-up me-1"></i>الرسم البياني
+            </button>
+        </li>
+        <li class="nav-item flex-shrink-0">
+            <button class="nav-link rounded-pill px-3 py-2"
+                    :class="activeTab === 'explain' && 'active'"
+                    x-on:click="activeTab = 'explain'" role="tab">
+                <i class="bi bi-lightbulb me-1"></i>اشرح الحركة
+            </button>
+        </li>
+        <li class="nav-item flex-shrink-0">
+            <button class="nav-link rounded-pill px-3 py-2"
+                    :class="activeTab === 'financials' && 'active'"
+                    x-on:click="activeTab = 'financials'" role="tab">
+                <i class="bi bi-calculator me-1"></i>النسب المالية
+            </button>
+        </li>
+        <li class="nav-item flex-shrink-0">
+            <button class="nav-link rounded-pill px-3 py-2"
+                    :class="activeTab === 'disclosures' && 'active'"
+                    x-on:click="activeTab = 'disclosures'" role="tab">
+                <i class="bi bi-file-earmark-text me-1"></i>الإفصاحات
+            </button>
+        </li>
+        <li class="nav-item flex-shrink-0">
+            <button class="nav-link rounded-pill px-3 py-2"
+                    :class="activeTab === 'orderbook' && 'active'"
+                    x-on:click="activeTab = 'orderbook'" role="tab">
+                <i class="bi bi-journal-bookmark me-1"></i>دفتر الأوامر
+            </button>
+        </li>
+    </ul>
+
+    @* ===== TAB A: OVERVIEW ===== *@
+    <div x-show="activeTab === 'overview'" x-transition:enter.duration.200ms>
+        <div class="row g-4">
+            @* Company Description *@
+            <div class="col-12">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body">
+                        <h5 class="card-title fw-bold mb-3">
+                            <i class="bi bi-info-circle me-1 text-primary"></i>نبذة عن الشركة
+                        </h5>
+                        @if (!string.IsNullOrWhiteSpace(Model.DescriptionAr))
+                        {
+                            <p class="text-muted lh-lg mb-3">@Model.DescriptionAr</p>
+                        }
+                        else
+                        {
+                            <p class="text-muted fst-italic">لا يوجد وصف متوفر حالياً.</p>
+                        }
+                        <div class="d-flex flex-wrap gap-3 mt-3">
+                            <div class="d-flex align-items-center gap-2">
+                                <i class="bi bi-building text-primary"></i>
+                                <span class="text-muted small">القطاع:</span>
+                                <span class="fw-semibold small">@Model.SectorNameAr</span>
+                            </div>
+                            @if (Model.ListingDate.HasValue)
+                            {
+                                <div class="d-flex align-items-center gap-2">
+                                    <i class="bi bi-calendar-event text-primary"></i>
+                                    <span class="text-muted small">تاريخ الإدراج:</span>
+                                    <span class="fw-semibold small" dir="ltr">@Model.ListingDate.Value.ToString("yyyy/MM/dd")</span>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            @* Key Data Cards *@
+            <div class="col-12">
+                <h5 class="fw-bold mb-3">
+                    <i class="bi bi-bar-chart-line me-1 text-primary"></i>بيانات أساسية
+                </h5>
+                <div class="row g-3">
+                    @* Market Cap *@
+                    <div class="col-6 col-md-4 col-lg-3 col-xl-2">
+                        <div class="card border-0 shadow-sm h-100">
+                            <div class="card-body text-center p-3">
+                                <div class="text-muted small mb-1">القيمة السوقية</div>
+                                <div class="fw-bold">
+                                    @if (Model.MarketCap.HasValue)
+                                    {
+                                        @if (Model.MarketCap.Value >= 1_000_000_000)
+                                        {
+                                            <span>@((Model.MarketCap.Value / 1_000_000_000).ToString("N2")) مليار</span>
+                                        }
+                                        else if (Model.MarketCap.Value >= 1_000_000)
+                                        {
+                                            <span>@((Model.MarketCap.Value / 1_000_000).ToString("N2")) مليون</span>
+                                        }
+                                        else
+                                        {
+                                            <span>@Model.MarketCap.Value.ToString("N0")</span>
+                                        }
+                                        <span class="text-muted small">د.ك</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">--</span>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    @* Shares Outstanding *@
+                    <div class="col-6 col-md-4 col-lg-3 col-xl-2">
+                        <div class="card border-0 shadow-sm h-100">
+                            <div class="card-body text-center p-3">
+                                <div class="text-muted small mb-1">الأسهم المصدرة</div>
+                                <div class="fw-bold">
+                                    @if (Model.SharesOutstanding.HasValue)
+                                    {
+                                        @if (Model.SharesOutstanding.Value >= 1_000_000_000)
+                                        {
+                                            <span>@((Model.SharesOutstanding.Value / 1_000_000_000.0).ToString("N2")) مليار</span>
+                                        }
+                                        else if (Model.SharesOutstanding.Value >= 1_000_000)
+                                        {
+                                            <span>@((Model.SharesOutstanding.Value / 1_000_000.0).ToString("N2")) مليون</span>
+                                        }
+                                        else
+                                        {
+                                            <span>@Model.SharesOutstanding.Value.ToString("N0")</span>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">--</span>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    @* 52-Week High *@
+                    <div class="col-6 col-md-4 col-lg-3 col-xl-2">
+                        <div class="card border-0 shadow-sm h-100">
+                            <div class="card-body text-center p-3">
+                                <div class="text-muted small mb-1">أعلى سعر 52 أسبوع</div>
+                                <div class="fw-bold text-muted">--</div>
+                            </div>
+                        </div>
+                    </div>
+                    @* 52-Week Low *@
+                    <div class="col-6 col-md-4 col-lg-3 col-xl-2">
+                        <div class="card border-0 shadow-sm h-100">
+                            <div class="card-body text-center p-3">
+                                <div class="text-muted small mb-1">أدنى سعر 52 أسبوع</div>
+                                <div class="fw-bold text-muted">--</div>
+                            </div>
+                        </div>
+                    </div>
+                    @* Average Volume *@
+                    <div class="col-6 col-md-4 col-lg-3 col-xl-2">
+                        <div class="card border-0 shadow-sm h-100">
+                            <div class="card-body text-center p-3">
+                                <div class="text-muted small mb-1">متوسط حجم التداول</div>
+                                <div class="fw-bold text-muted">--</div>
+                            </div>
+                        </div>
+                    </div>
+                    @* Day Range *@
+                    <div class="col-6 col-md-4 col-lg-3 col-xl-2">
+                        <div class="card border-0 shadow-sm h-100">
+                            <div class="card-body text-center p-3">
+                                <div class="text-muted small mb-1">نطاق اليوم</div>
+                                <div class="fw-bold text-muted">--</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @* ===== TAB B: CHART ===== *@
+    <div x-show="activeTab === 'chart'" x-transition:enter.duration.200ms>
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-3 p-md-4">
+                @* Timeframe Buttons *@
+                <div class="d-flex flex-wrap gap-2 mb-3 justify-content-center">
+                    @foreach (var tf in new[] { ("1D", "يوم"), ("1W", "أسبوع"), ("1M", "شهر"), ("3M", "3 أشهر"), ("6M", "6 أشهر"), ("1Y", "سنة"), ("ALL", "الكل") })
+                    {
+                        <button class="btn btn-sm rounded-pill px-3"
+                                :class="chartRange === '@tf.Item1' ? 'btn-primary' : 'btn-outline-secondary'"
+                                x-on:click="chartRange = '@tf.Item1'; loadChartData('@tf.Item1')">
+                            @tf.Item2
+                        </button>
+                    }
+                </div>
+                @* Chart Container *@
+                <div id="stockChart" style="width: 100%; height: 400px;" class="rounded"></div>
+            </div>
+        </div>
+    </div>
+
+    @* ===== TAB C: EXPLAIN MOVEMENT ===== *@
+    <div x-show="activeTab === 'explain'" x-transition:enter.duration.200ms>
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-4 text-center">
+                <div class="py-4">
+                    <i class="bi bi-lightbulb display-4 mb-3" style="color: #FC4A04;"></i>
+                    <h5 class="fw-bold mb-3">تحليل حركة السهم بالذكاء الاصطناعي</h5>
+                    <p class="text-muted mb-4">
+                        احصل على تحليل مبسط لأسباب تحرك سعر سهم @Model.NameAr بناءً على الإفصاحات والأخبار الأخيرة.
+                    </p>
+                    <button class="btn btn-lg rounded-pill px-5 py-3 fw-bold text-white"
+                            style="background-color: #FC4A04; border-color: #FC4A04;"
+                            :disabled="explainLoading"
+                            x-on:click="
+                                explainLoading = true;
+                                explainResult = '';
+                                fetch('/Stock/ExplainMovement?symbol=@Model.Symbol')
+                                    .then(r => r.json())
+                                    .then(data => { explainResult = data.explanation || 'لا يوجد تحليل متاح حالياً.'; })
+                                    .catch(() => { explainResult = 'حدث خطأ أثناء التحليل. يرجى المحاولة لاحقاً.'; })
+                                    .finally(() => { explainLoading = false; });
+                            ">
+                        <template x-if="!explainLoading">
+                            <span><i class="bi bi-magic me-2"></i>اشرح الحركة</span>
+                        </template>
+                        <template x-if="explainLoading">
+                            <span>
+                                <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                                جاري التحليل...
+                            </span>
+                        </template>
+                    </button>
+                </div>
+
+                @* Result Area *@
+                <div x-show="explainResult" x-transition class="mt-4">
+                    <div class="card border bg-light">
+                        <div class="card-body text-start p-4">
+                            <h6 class="fw-bold mb-3">
+                                <i class="bi bi-robot me-1 text-primary"></i>نتيجة التحليل
+                            </h6>
+                            <div class="lh-lg" x-html="explainResult.replace(/\n/g, '<br>')"></div>
+                        </div>
+                    </div>
+                </div>
+
+                @* Disclaimer *@
+                <div class="mt-4">
+                    <small class="text-muted">
+                        <i class="bi bi-exclamation-triangle me-1"></i>
+                        هذا تحليل تعليمي وليس نصيحة استثمارية
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @* ===== TAB D: FINANCIAL RATIOS ===== *@
+    <div x-show="activeTab === 'financials'" x-transition:enter.duration.200ms>
+        @if (Model.Financials != null)
+        {
+            <div class="mb-3">
+                <span class="badge bg-primary bg-opacity-10 text-primary fs-6">
+                    <i class="bi bi-calendar3 me-1"></i>
+                    الفترة: @Model.Financials.Year الربع @Model.Financials.Quarter
+                </span>
+            </div>
+            <div class="row g-3">
+                @{
+                    var ratios = new (string Label, string Icon, decimal? Value, string Format, string Suffix)[]
+                    {
+                        ("مضاعف الربحية", "bi-graph-up-arrow", Model.Financials.PE, "N2", "x"),
+                        ("مضاعف القيمة الدفترية", "bi-bookmark", Model.Financials.PB, "N2", "x"),
+                        ("العائد على حقوق الملكية", "bi-percent", Model.Financials.ROE, "N2", "%"),
+                        ("هامش الربح", "bi-pie-chart", Model.Financials.ProfitMargin, "N2", "%"),
+                        ("عائد التوزيعات", "bi-cash-coin", Model.Financials.DividendYield, "N2", "%"),
+                        ("الدين إلى حقوق الملكية", "bi-bank", Model.Financials.DebtEquity, "N2", "x"),
+                        ("ربحية السهم", "bi-currency-exchange", Model.Financials.EPS, "N3", " د.ك"),
+                        ("توزيعات السهم", "bi-gift", Model.Financials.DPS, "N3", " د.ك"),
+                    };
+                }
+                @foreach (var ratio in ratios)
+                {
+                    <div class="col-6 col-md-4 col-lg-3">
+                        <div class="card border-0 shadow-sm h-100">
+                            <div class="card-body text-center p-3">
+                                <div class="mb-2">
+                                    <i class="bi @ratio.Icon fs-4 text-primary"></i>
+                                </div>
+                                <div class="text-muted small mb-1">@ratio.Label</div>
+                                <div class="fs-4 fw-bold">
+                                    @if (ratio.Value.HasValue)
+                                    {
+                                        <span>@ratio.Value.Value.ToString(ratio.Format)@ratio.Suffix</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted fs-5">--</span>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center py-5">
+                    <i class="bi bi-calculator display-4 text-muted mb-3 d-block"></i>
+                    <h5 class="text-muted">لا تتوفر بيانات مالية</h5>
+                    <p class="text-muted small">لا تتوفر بيانات مالية لهذا السهم حالياً.</p>
+                </div>
+            </div>
+        }
+    </div>
+
+    @* ===== TAB E: DISCLOSURES ===== *@
+    <div x-show="activeTab === 'disclosures'" x-transition:enter.duration.200ms>
+        @if (Model.RecentDisclosures != null && Model.RecentDisclosures.Any())
+        {
+            <div class="d-flex flex-column gap-3" id="disclosures-list">
+                @foreach (var disclosure in Model.RecentDisclosures)
+                {
+                    var badgeClass = disclosure.Type switch
+                    {
+                        DisclosureType.Financial => "bg-primary",
+                        DisclosureType.Board => "bg-purple",
+                        DisclosureType.General => "bg-secondary",
+                        DisclosureType.AGM => "bg-warning text-dark",
+                        DisclosureType.Dividend => "bg-success",
+                        _ => "bg-secondary"
+                    };
+                    var typeName = disclosure.Type switch
+                    {
+                        DisclosureType.Financial => "مالي",
+                        DisclosureType.Board => "مجلس إدارة",
+                        DisclosureType.General => "عام",
+                        DisclosureType.AGM => "جمعية عمومية",
+                        DisclosureType.Dividend => "توزيعات",
+                        _ => "أخرى"
+                    };
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body p-3">
+                            <div class="d-flex align-items-start justify-content-between gap-2 mb-2">
+                                <div class="d-flex align-items-center gap-2 flex-wrap">
+                                    <span class="badge @badgeClass rounded-pill">@typeName</span>
+                                    <small class="text-muted" dir="ltr">
+                                        <i class="bi bi-calendar3 me-1"></i>@disclosure.PublishedDate.ToString("yyyy/MM/dd")
+                                    </small>
+                                </div>
+                                @if (!string.IsNullOrWhiteSpace(disclosure.SourceUrl))
+                                {
+                                    <a href="@disclosure.SourceUrl" target="_blank" rel="noopener noreferrer"
+                                       class="btn btn-sm btn-outline-primary rounded-pill flex-shrink-0">
+                                        <i class="bi bi-box-arrow-up-left me-1"></i>المصدر
+                                    </a>
+                                }
+                            </div>
+                            <h6 class="fw-bold mb-2">@disclosure.TitleAr</h6>
+                            @if (!string.IsNullOrWhiteSpace(disclosure.AiSummary))
+                            {
+                                <div x-data="{ expanded: false }">
+                                    <div class="text-muted lh-lg" x-show="expanded" x-transition x-cloak>
+                                        @disclosure.AiSummary
+                                    </div>
+                                    <button class="btn btn-sm btn-link text-decoration-none p-0 mt-1"
+                                            x-on:click="expanded = !expanded">
+                                        <template x-if="!expanded">
+                                            <span><i class="bi bi-chevron-down me-1"></i>ملخص الذكاء الاصطناعي</span>
+                                        </template>
+                                        <template x-if="expanded">
+                                            <span><i class="bi bi-chevron-up me-1"></i>إخفاء الملخص</span>
+                                        </template>
+                                    </button>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+            @* Load More *@
+            <div class="text-center mt-4">
+                <button class="btn btn-outline-primary rounded-pill px-4"
+                        hx-get="/Stock/Disclosures?symbol=@Model.Symbol&page=2"
+                        hx-target="#disclosures-list"
+                        hx-swap="beforeend"
+                        hx-indicator="#disclosures-spinner">
+                    <span id="disclosures-spinner" class="spinner-border spinner-border-sm me-1 htmx-indicator" role="status"></span>
+                    تحميل المزيد
+                </button>
+            </div>
+        }
+        else
+        {
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center py-5">
+                    <i class="bi bi-file-earmark-text display-4 text-muted mb-3 d-block"></i>
+                    <h5 class="text-muted">لا توجد إفصاحات</h5>
+                    <p class="text-muted small">لا توجد إفصاحات متوفرة لهذا السهم حالياً.</p>
+                </div>
+            </div>
+        }
+    </div>
+
+    @* ===== TAB F: ORDER BOOK ===== *@
+    <div x-show="activeTab === 'orderbook'" x-transition:enter.duration.200ms>
+        @if (Model.OrderBook != null && Model.OrderBook.Any())
+        {
+            @* Buy / Sell Pressure Bar *@
+            <div class="card border-0 shadow-sm mb-3">
+                <div class="card-body p-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="fw-semibold text-success small">
+                            <i class="bi bi-arrow-up-circle me-1"></i>ضغط الشراء @Model.BuyPressure.ToString("N1")%
+                        </span>
+                        <span class="fw-semibold text-danger small">
+                            ضغط البيع @Model.SellPressure.ToString("N1")%<i class="bi bi-arrow-down-circle ms-1"></i>
+                        </span>
+                    </div>
+                    <div class="progress rounded-pill" style="height: 12px;">
+                        <div class="progress-bar bg-success rounded-start-pill"
+                             role="progressbar"
+                             style="width: @Model.BuyPressure.ToString("N1")%"
+                             aria-valuenow="@Model.BuyPressure" aria-valuemin="0" aria-valuemax="100">
+                        </div>
+                        <div class="progress-bar bg-danger rounded-end-pill"
+                             role="progressbar"
+                             style="width: @Model.SellPressure.ToString("N1")%"
+                             aria-valuenow="@Model.SellPressure" aria-valuemin="0" aria-valuemax="100">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            @* Order Book Table *@
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-0">
+                    @{
+                        var maxBidQty = Model.OrderBook.Where(o => o.BidQuantity > 0).Select(o => o.BidQuantity).DefaultIfEmpty(1).Max();
+                        var maxAskQty = Model.OrderBook.Where(o => o.AskQuantity > 0).Select(o => o.AskQuantity).DefaultIfEmpty(1).Max();
+                    }
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover mb-0 align-middle">
+                            <thead>
+                                <tr class="text-center small">
+                                    <th class="text-success border-0 py-2" style="width: 25%;">الكمية</th>
+                                    <th class="text-success border-0 py-2" style="width: 25%;">سعر الشراء</th>
+                                    <th class="text-danger border-0 py-2" style="width: 25%;">سعر البيع</th>
+                                    <th class="text-danger border-0 py-2" style="width: 25%;">الكمية</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var entry in Model.OrderBook)
+                                {
+                                    var bidPct = maxBidQty > 0 ? (double)(entry.BidQuantity ?? 0) / (double)maxBidQty.Value * 100 : 0;
+                                    var askPct = maxAskQty > 0 ? (double)(entry.AskQuantity ?? 0) / (double)maxAskQty.Value * 100 : 0;
+                                    <tr class="text-center">
+                                        @* Bid Quantity with bar *@
+                                        <td class="position-relative border-0 py-2">
+                                            <div class="position-absolute top-0 end-0 h-100 bg-success bg-opacity-10 rounded-start"
+                                                 style="width: @bidPct.ToString("N0")%;"></div>
+                                            <span class="position-relative fw-semibold small">
+                                                @(entry.BidQuantity > 0 ? entry.BidQuantity.Value.ToString("N0") : "--")
+                                            </span>
+                                        </td>
+                                        @* Bid Price *@
+                                        <td class="text-success fw-bold border-0 py-2" dir="ltr">
+                                            @(entry.BidPrice > 0 ? entry.BidPrice.Value.ToString("N3") : "--")
+                                        </td>
+                                        @* Ask Price *@
+                                        <td class="text-danger fw-bold border-0 py-2" dir="ltr">
+                                            @(entry.AskPrice > 0 ? entry.AskPrice.Value.ToString("N3") : "--")
+                                        </td>
+                                        @* Ask Quantity with bar *@
+                                        <td class="position-relative border-0 py-2">
+                                            <div class="position-absolute top-0 start-0 h-100 bg-danger bg-opacity-10 rounded-end"
+                                                 style="width: @askPct.ToString("N0")%;"></div>
+                                            <span class="position-relative fw-semibold small">
+                                                @(entry.AskQuantity > 0 ? entry.AskQuantity.Value.ToString("N0") : "--")
+                                            </span>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center py-5">
+                    <i class="bi bi-journal-bookmark display-4 text-muted mb-3 d-block"></i>
+                    <h5 class="text-muted">لا تتوفر بيانات دفتر الأوامر</h5>
+                    <p class="text-muted small">دفتر الأوامر غير متوفر خارج أوقات التداول.</p>
+                </div>
+            </div>
+        }
+    </div>
+
+</div>
+
+@* ===== Price Alert Modal ===== *@
+<div class="modal fade" id="priceAlertModal" tabindex="-1" aria-labelledby="priceAlertModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="priceAlertModalLabel">
+                    <i class="bi bi-bell me-2"></i>تنبيه السعر - @Model.Symbol
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="alertPrice" class="form-label">السعر المستهدف (د.ك)</label>
+                    <input type="number" class="form-control text-start" id="alertPrice"
+                           step="0.001" min="0" placeholder="0.000" dir="ltr">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">نوع التنبيه</label>
+                    <div class="d-flex gap-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="alertType" id="alertAbove" value="above" checked>
+                            <label class="form-check-label" for="alertAbove">أعلى من</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="alertType" id="alertBelow" value="below">
+                            <label class="form-check-label" for="alertBelow">أقل من</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary rounded-pill" data-bs-dismiss="modal">إلغاء</button>
+                <button type="button" class="btn btn-primary rounded-pill px-4">
+                    <i class="bi bi-bell me-1"></i>إنشاء التنبيه
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Styles {
+    <style>
+        /* Purple badge for Board disclosures */
+        .bg-purple {
+            background-color: #7c3aed !important;
+            color: #fff;
+        }
+
+        /* Smooth tab transitions */
+        [x-cloak] { display: none !important; }
+
+        /* Order book row hover */
+        .table-hover tbody tr:hover {
+            background-color: rgba(0,0,0,.02);
+        }
+
+        /* Chart container dark background */
+        #stockChart {
+            background-color: #1a1a2e;
+            border-radius: 0.5rem;
+        }
+
+        /* Active tab styling */
+        .nav-pills .nav-link.active {
+            font-weight: 600;
+        }
+
+        /* Scrollable tabs on mobile */
+        .nav-pills {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .nav-pills::-webkit-scrollbar {
+            display: none;
+        }
+
+        /* Progress bar transitions */
+        .progress-bar {
+            transition: width 0.6s ease;
+        }
+
+        /* Card hover effect */
+        .card {
+            transition: box-shadow 0.2s ease;
+        }
+        .card:hover {
+            box-shadow: 0 .25rem .75rem rgba(0,0,0,.08) !important;
+        }
+    </style>
+}
+
+@section Scripts {
+    @* TradingView Lightweight Charts CDN *@
+    <script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
+
+    <script>
+        let chartInstance = null;
+        let areaSeries = null;
+
+        function initChart() {
+            const container = document.getElementById('stockChart');
+            if (!container || chartInstance) return;
+
+            chartInstance = LightweightCharts.createChart(container, {
+                width: container.clientWidth,
+                height: 400,
+                layout: {
+                    background: { type: 'solid', color: '#1a1a2e' },
+                    textColor: '#d1d4dc',
+                    fontFamily: 'inherit',
+                },
+                grid: {
+                    vertLines: { color: 'rgba(255, 255, 255, 0.05)' },
+                    horzLines: { color: 'rgba(255, 255, 255, 0.05)' },
+                },
+                crosshair: {
+                    mode: LightweightCharts.CrosshairMode.Normal,
+                },
+                rightPriceScale: {
+                    borderColor: 'rgba(255, 255, 255, 0.1)',
+                },
+                timeScale: {
+                    borderColor: 'rgba(255, 255, 255, 0.1)',
+                    timeVisible: true,
+                    secondsVisible: false,
+                },
+                localization: {
+                    priceFormatter: (price) => price.toFixed(3) + ' د.ك',
+                },
+            });
+
+            areaSeries = chartInstance.addAreaSeries({
+                topColor: 'rgba(38, 198, 218, 0.56)',
+                bottomColor: 'rgba(38, 198, 218, 0.04)',
+                lineColor: 'rgba(38, 198, 218, 1)',
+                lineWidth: 2,
+                priceFormat: {
+                    type: 'price',
+                    precision: 3,
+                    minMove: 0.001,
+                },
+            });
+
+            // Responsive resize
+            const resizeObserver = new ResizeObserver(entries => {
+                if (entries.length === 0 || entries[0].target !== container) return;
+                const { width, height } = entries[0].contentRect;
+                chartInstance.applyOptions({ width, height: Math.max(height, 400) });
+            });
+            resizeObserver.observe(container);
+
+            // Load default range
+            loadChartData('1M');
+        }
+
+        function loadChartData(range) {
+            const symbol = '@Model.Symbol';
+            fetch(`/Stock/Prices?symbol=${encodeURIComponent(symbol)}&range=${encodeURIComponent(range)}`)
+                .then(response => {
+                    if (!response.ok) throw new Error('Network error');
+                    return response.json();
+                })
+                .then(data => {
+                    if (areaSeries && data && Array.isArray(data)) {
+                        // Expect data as [{ time: "2024-01-01", value: 0.350 }, ...]
+                        const formatted = data.map(d => ({
+                            time: d.time || d.date,
+                            value: parseFloat(d.value || d.close || d.price || 0),
+                        })).filter(d => d.time && !isNaN(d.value));
+
+                        // Sort by time ascending
+                        formatted.sort((a, b) => a.time.localeCompare(b.time));
+
+                        areaSeries.setData(formatted);
+                        chartInstance.timeScale().fitContent();
+
+                        // Update line color based on trend
+                        if (formatted.length >= 2) {
+                            const first = formatted[0].value;
+                            const last = formatted[formatted.length - 1].value;
+                            const isPositive = last >= first;
+                            areaSeries.applyOptions({
+                                topColor: isPositive ? 'rgba(38, 198, 218, 0.56)' : 'rgba(239, 83, 80, 0.56)',
+                                bottomColor: isPositive ? 'rgba(38, 198, 218, 0.04)' : 'rgba(239, 83, 80, 0.04)',
+                                lineColor: isPositive ? 'rgba(38, 198, 218, 1)' : 'rgba(239, 83, 80, 1)',
+                            });
+                        }
+                    }
+                })
+                .catch(err => {
+                    console.error('Failed to load chart data:', err);
+                });
+        }
+
+        // Initialize chart if the tab is already active on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            // Chart will be initialized when user clicks the chart tab
+        });
+    </script>
+}
