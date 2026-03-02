@@ -1,0 +1,256 @@
+@model AlMal.Web.ViewModels.Profile.ProfileViewModel
+@using AlMal.Domain.Enums
+@{
+    ViewData["Title"] = Model.DisplayName + " - الملف الشخصي";
+
+    var initials = "";
+    if (!string.IsNullOrWhiteSpace(Model.DisplayName))
+    {
+        var parts = Model.DisplayName.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        initials = parts.Length >= 2
+            ? $"{parts[0][0]}{parts[1][0]}"
+            : Model.DisplayName[..Math.Min(2, Model.DisplayName.Length)];
+    }
+
+    var badgeClass = Model.UserType switch
+    {
+        UserType.ProAnalyst => "badge-pro",
+        UserType.CertifiedAnalyst => "badge-certified",
+        _ => ""
+    };
+
+    var badgeText = Model.UserType switch
+    {
+        UserType.ProAnalyst => "محلل محترف",
+        UserType.CertifiedAnalyst => "محلل معتمد",
+        _ => ""
+    };
+
+    var badgeIcon = Model.UserType switch
+    {
+        UserType.ProAnalyst => "bi-star-fill",
+        UserType.CertifiedAnalyst => "bi-patch-check-fill",
+        _ => ""
+    };
+}
+
+<div class="container py-3" x-data="profilePage()">
+
+    @* ===== SUCCESS MESSAGE ===== *@
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="bi bi-check-circle-fill ms-1"></i>
+            @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="إغلاق"></button>
+        </div>
+    }
+
+    @* ===== PROFILE CARD ===== *@
+    <div class="row justify-content-center">
+        <div class="col-12 col-md-8 col-lg-6">
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body p-4">
+
+                    @* Avatar + Name + Badge *@
+                    <div class="text-center mb-3">
+                        @if (!string.IsNullOrWhiteSpace(Model.AvatarUrl))
+                        {
+                            <img src="@Model.AvatarUrl"
+                                 alt="@Model.DisplayName"
+                                 class="profile-avatar rounded-circle mb-3"
+                                 width="96" height="96" />
+                        }
+                        else
+                        {
+                            <div class="profile-avatar-initials rounded-circle d-inline-flex align-items-center justify-content-center mb-3">
+                                <span>@initials</span>
+                            </div>
+                        }
+
+                        <h2 class="fw-bold mb-1">
+                            @Model.DisplayName
+                            @if (Model.IsVerified)
+                            {
+                                <i class="bi bi-patch-check-fill text-primary ms-1" title="موثّق"></i>
+                            }
+                        </h2>
+
+                        @if (Model.UserType != UserType.Normal)
+                        {
+                            <span class="badge @badgeClass">
+                                <i class="bi @badgeIcon ms-1"></i>@badgeText
+                            </span>
+                        }
+
+                        @if (!string.IsNullOrWhiteSpace(Model.Bio))
+                        {
+                            <p class="text-muted mt-2 mb-0 px-3">@Model.Bio</p>
+                        }
+
+                        <div class="text-muted small mt-2">
+                            <i class="bi bi-calendar3 ms-1"></i>
+                            عضو منذ @Model.MemberSince.ToString("MMMM yyyy", new System.Globalization.CultureInfo("ar"))
+                        </div>
+                    </div>
+
+                    @* Stats Row *@
+                    <div class="row text-center border-top border-bottom py-3 mb-3">
+                        <div class="col-4">
+                            <a asp-controller="Profile" asp-action="Followers" asp-route-id="@Model.UserId"
+                               class="text-decoration-none text-body d-block">
+                                <div class="fw-bold fs-5" x-text="followersCount">@Model.FollowersCount</div>
+                                <div class="text-muted small">متابِعون</div>
+                            </a>
+                        </div>
+                        <div class="col-4">
+                            <a asp-controller="Profile" asp-action="Following" asp-route-id="@Model.UserId"
+                               class="text-decoration-none text-body d-block">
+                                <div class="fw-bold fs-5">@Model.FollowingCount</div>
+                                <div class="text-muted small">يتابع</div>
+                            </a>
+                        </div>
+                        <div class="col-4">
+                            <div class="fw-bold fs-5">@Model.PostCount</div>
+                            <div class="text-muted small">منشورات</div>
+                        </div>
+                    </div>
+
+                    @* Action Buttons *@
+                    <div class="d-flex justify-content-center gap-2">
+                        @if (Model.IsOwnProfile)
+                        {
+                            <a asp-controller="Profile" asp-action="Edit"
+                               class="btn btn-outline-primary rounded-pill px-4">
+                                <i class="bi bi-pencil ms-1"></i>تعديل الملف الشخصي
+                            </a>
+                        }
+                        else if (User.Identity != null && User.Identity.IsAuthenticated)
+                        {
+                            <button type="button"
+                                    class="btn rounded-pill px-4"
+                                    :class="isFollowing ? 'btn-outline-secondary' : 'btn-primary'"
+                                    x-on:click="toggleFollow()"
+                                    :disabled="loading">
+                                <template x-if="loading">
+                                    <span class="spinner-border spinner-border-sm ms-1" role="status"></span>
+                                </template>
+                                <template x-if="!loading && isFollowing">
+                                    <span><i class="bi bi-person-check ms-1"></i>متابَع</span>
+                                </template>
+                                <template x-if="!loading && !isFollowing">
+                                    <span><i class="bi bi-person-plus ms-1"></i>متابعة</span>
+                                </template>
+                            </button>
+                        }
+                        else
+                        {
+                            <a asp-controller="Account" asp-action="Login"
+                               class="btn btn-primary rounded-pill px-4">
+                                <i class="bi bi-person-plus ms-1"></i>سجل الدخول للمتابعة
+                            </a>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            @* ===== POSTS FEED PLACEHOLDER ===== *@
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-4 text-center">
+                    <div class="py-4">
+                        <i class="bi bi-chat-square-text fs-1 text-muted d-block mb-3" style="opacity: 0.5;"></i>
+                        <h5 class="fw-bold mb-2">منشورات المستخدم</h5>
+                        <p class="text-muted mb-0">قريباً - سيتم عرض منشورات المستخدم هنا</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Styles {
+    <style>
+        .profile-avatar {
+            width: 96px;
+            height: 96px;
+            object-fit: cover;
+            border: 3px solid var(--card-border);
+        }
+
+        .profile-avatar-initials {
+            width: 96px;
+            height: 96px;
+            font-size: 2rem;
+            font-weight: 700;
+            background-color: var(--clr-primary);
+            color: #fff;
+            border: 3px solid var(--card-border);
+        }
+
+        .badge-pro {
+            background-color: rgba(245, 158, 11, 0.15);
+            color: #f59e0b;
+            font-size: 0.8rem;
+            padding: 0.35em 0.75em;
+        }
+
+        .badge-certified {
+            background-color: rgba(139, 92, 246, 0.15);
+            color: #8b5cf6;
+            font-size: 0.8rem;
+            padding: 0.35em 0.75em;
+        }
+    </style>
+}
+
+@section Scripts {
+    <script>
+        function profilePage() {
+            return {
+                isFollowing: @(Model.IsFollowing ? "true" : "false"),
+                followersCount: @Model.FollowersCount,
+                loading: false,
+                userId: '@Model.UserId',
+
+                async toggleFollow() {
+                    if (this.loading) return;
+                    this.loading = true;
+
+                    const action = this.isFollowing ? 'Unfollow' : 'Follow';
+                    const url = `/Profile/${action}`;
+
+                    try {
+                        const formData = new FormData();
+                        formData.append('userId', this.userId);
+
+                        const tokenEl = document.querySelector('input[name="__RequestVerificationToken"]');
+                        if (tokenEl) {
+                            formData.append('__RequestVerificationToken', tokenEl.value);
+                        }
+
+                        const response = await fetch(url, {
+                            method: 'POST',
+                            body: formData
+                        });
+
+                        if (response.ok) {
+                            const data = await response.json();
+                            if (data.success) {
+                                this.isFollowing = !this.isFollowing;
+                                this.followersCount = data.followersCount;
+                            }
+                        }
+                    } catch (err) {
+                        console.error('Error toggling follow:', err);
+                    } finally {
+                        this.loading = false;
+                    }
+                }
+            };
+        }
+    </script>
+    @* Anti-forgery token for AJAX calls *@
+    <form id="__AjaxAntiForgeryForm" asp-controller="Profile" asp-action="Follow" method="post" style="display:none;">
+        @Html.AntiForgeryToken()
+    </form>
+}

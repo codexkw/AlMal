@@ -1,0 +1,104 @@
+@model AlMal.Web.ViewModels.Profile.EditProfileViewModel
+@{
+    ViewData["Title"] = "تعديل الملف الشخصي";
+}
+
+<div class="container py-3">
+    <div class="row justify-content-center">
+        <div class="col-12 col-md-8 col-lg-6">
+
+            @* ===== PAGE HEADER ===== *@
+            <div class="mb-4">
+                <h1 class="h3 fw-bold mb-1">
+                    <i class="bi bi-pencil-square ms-2"></i>تعديل الملف الشخصي
+                </h1>
+                <p class="text-muted mb-0">قم بتحديث معلومات ملفك الشخصي</p>
+            </div>
+
+            @* ===== ERROR MESSAGES ===== *@
+            @if (!ViewData.ModelState.IsValid)
+            {
+                <div class="alert alert-danger" role="alert">
+                    @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+                    {
+                        <p class="mb-0">@error.ErrorMessage</p>
+                    }
+                </div>
+            }
+
+            @* ===== EDIT FORM ===== *@
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-4">
+                    <form asp-action="Edit" asp-controller="Profile" method="post" x-data="editProfileForm()">
+                        @Html.AntiForgeryToken()
+
+                        @* Display Name *@
+                        <div class="mb-3">
+                            <label asp-for="DisplayName" class="form-label fw-semibold">الاسم المعروض</label>
+                            <input asp-for="DisplayName"
+                                   class="form-control"
+                                   type="text"
+                                   maxlength="50"
+                                   placeholder="أدخل اسمك المعروض"
+                                   required />
+                            <span asp-validation-for="DisplayName" class="text-danger small"></span>
+                            <div class="form-text">هذا هو الاسم الذي سيظهر للمستخدمين الآخرين (50 حرف كحد أقصى)</div>
+                        </div>
+
+                        @* Bio *@
+                        <div class="mb-4">
+                            <label asp-for="Bio" class="form-label fw-semibold">النبذة التعريفية</label>
+                            <textarea asp-for="Bio"
+                                      class="form-control"
+                                      rows="4"
+                                      maxlength="200"
+                                      placeholder="اكتب نبذة مختصرة عنك..."
+                                      x-model="bio"
+                                      x-on:input="updateCounter()"></textarea>
+                            <span asp-validation-for="Bio" class="text-danger small"></span>
+                            <div class="d-flex justify-content-between mt-1">
+                                <span class="form-text">اختياري - أخبر الآخرين عن نفسك</span>
+                                <span class="form-text"
+                                      :class="bioLength > 180 ? 'text-warning' : ''">
+                                    <span x-text="bioLength">0</span>/200
+                                </span>
+                            </div>
+                        </div>
+
+                        @* Action Buttons *@
+                        <div class="d-flex gap-2 justify-content-end">
+                            <a asp-controller="Profile" asp-action="Index"
+                               asp-route-id="@User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value"
+                               class="btn btn-outline-secondary rounded-pill px-4">
+                                إلغاء
+                            </a>
+                            <button type="submit" class="btn btn-primary rounded-pill px-4">
+                                <i class="bi bi-check-lg ms-1"></i>حفظ التعديلات
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        function editProfileForm() {
+            return {
+                bio: document.querySelector('textarea[name="Bio"]')?.value || '',
+                bioLength: 0,
+
+                init() {
+                    this.bioLength = this.bio.length;
+                },
+
+                updateCounter() {
+                    this.bioLength = this.bio.length;
+                }
+            };
+        }
+    </script>
+}

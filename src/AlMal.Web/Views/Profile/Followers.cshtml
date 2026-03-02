@@ -1,0 +1,343 @@
+@model AlMal.Web.ViewModels.Profile.FollowListViewModel
+@using AlMal.Domain.Enums
+@{
+    var isFollowersList = Model.ListType == "followers";
+    var pageTitle = isFollowersList
+        ? $"متابعو {Model.DisplayName}"
+        : $"يتابعهم {Model.DisplayName}";
+    ViewData["Title"] = pageTitle;
+}
+
+<div class="container py-3" x-data="followListPage()">
+    <div class="row justify-content-center">
+        <div class="col-12 col-md-8 col-lg-6">
+
+            @* ===== PAGE HEADER ===== *@
+            <div class="d-flex align-items-center justify-content-between mb-4">
+                <div>
+                    <h1 class="h3 fw-bold mb-1">
+                        @if (isFollowersList)
+                        {
+                            <i class="bi bi-people-fill ms-2"></i>@:متابعو
+                        }
+                        else
+                        {
+                            <i class="bi bi-person-check-fill ms-2"></i>@:يتابعهم
+                        }
+                        <a asp-controller="Profile" asp-action="Index" asp-route-id="@Model.UserId"
+                           class="text-decoration-none">@Model.DisplayName</a>
+                    </h1>
+                    <p class="text-muted mb-0">
+                        @(Model.Users.Count > 0
+                            ? $"{Model.Page} من {Model.TotalPages} صفحات"
+                            : "")
+                    </p>
+                </div>
+                <a asp-controller="Profile" asp-action="Index" asp-route-id="@Model.UserId"
+                   class="btn btn-outline-secondary rounded-pill btn-sm">
+                    <i class="bi bi-arrow-right ms-1"></i>العودة
+                </a>
+            </div>
+
+            @* ===== TAB SWITCHER ===== *@
+            <ul class="nav nav-pills nav-fill mb-3 gap-2">
+                <li class="nav-item">
+                    <a class="nav-link rounded-pill @(isFollowersList ? "active" : "")"
+                       asp-controller="Profile" asp-action="Followers" asp-route-id="@Model.UserId">
+                        <i class="bi bi-people ms-1"></i>المتابِعون
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link rounded-pill @(!isFollowersList ? "active" : "")"
+                       asp-controller="Profile" asp-action="Following" asp-route-id="@Model.UserId">
+                        <i class="bi bi-person-check ms-1"></i>يتابع
+                    </a>
+                </li>
+            </ul>
+
+            @* ===== USERS LIST ===== *@
+            @if (Model.Users.Count == 0)
+            {
+                @await Html.PartialAsync("_EmptyState", null, new ViewDataDictionary(ViewData) {
+                    { "EmptyIcon", isFollowersList ? "bi-people" : "bi-person-check" },
+                    { "EmptyTitle", isFollowersList ? "لا يوجد متابعون بعد" : "لا يتابع أحداً بعد" },
+                    { "EmptyMessage", isFollowersList ? "لم يقم أحد بمتابعة هذا المستخدم حتى الآن" : "لم يقم هذا المستخدم بمتابعة أحد حتى الآن" }
+                })
+            }
+            else
+            {
+                <div class="d-flex flex-column gap-2">
+                    @foreach (var user in Model.Users)
+                    {
+                        var userInitials = "";
+                        if (!string.IsNullOrWhiteSpace(user.DisplayName))
+                        {
+                            var parts = user.DisplayName.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                            userInitials = parts.Length >= 2
+                                ? $"{parts[0][0]}{parts[1][0]}"
+                                : user.DisplayName[..Math.Min(2, user.DisplayName.Length)];
+                        }
+
+                        var currentUserId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                        var isSelf = currentUserId != null && currentUserId == user.UserId;
+
+                        <div class="card border-0 shadow-sm follow-user-card"
+                             x-data="{ following: @(user.IsFollowing ? "true" : "false"), loading: false }">
+                            <div class="card-body p-3">
+                                <div class="d-flex align-items-center gap-3">
+
+                                    @* Avatar *@
+                                    <a asp-controller="Profile" asp-action="Index" asp-route-id="@user.UserId"
+                                       class="text-decoration-none flex-shrink-0">
+                                        @if (!string.IsNullOrWhiteSpace(user.AvatarUrl))
+                                        {
+                                            <img src="@user.AvatarUrl"
+                                                 alt="@user.DisplayName"
+                                                 class="follow-list-avatar rounded-circle"
+                                                 width="48" height="48" />
+                                        }
+                                        else
+                                        {
+                                            <div class="follow-list-avatar-initials rounded-circle d-flex align-items-center justify-content-center">
+                                                <span>@userInitials</span>
+                                            </div>
+                                        }
+                                    </a>
+
+                                    @* Name + Badge *@
+                                    <div class="flex-grow-1 min-width-0">
+                                        <a asp-controller="Profile" asp-action="Index" asp-route-id="@user.UserId"
+                                           class="text-decoration-none">
+                                            <h6 class="fw-bold mb-0 text-body text-truncate">
+                                                @user.DisplayName
+                                            </h6>
+                                        </a>
+                                        @if (user.UserType == UserType.ProAnalyst)
+                                        {
+                                            <span class="badge badge-pro-sm">
+                                                <i class="bi bi-star-fill ms-1"></i>محلل محترف
+                                            </span>
+                                        }
+                                        else if (user.UserType == UserType.CertifiedAnalyst)
+                                        {
+                                            <span class="badge badge-certified-sm">
+                                                <i class="bi bi-patch-check-fill ms-1"></i>محلل معتمد
+                                            </span>
+                                        }
+                                    </div>
+
+                                    @* Follow/Unfollow Button *@
+                                    @if (User.Identity != null && User.Identity.IsAuthenticated && !isSelf)
+                                    {
+                                        <button type="button"
+                                                class="btn btn-sm rounded-pill px-3 flex-shrink-0"
+                                                :class="following ? 'btn-outline-secondary' : 'btn-primary'"
+                                                x-on:click="toggleFollow('@user.UserId', $el)"
+                                                :disabled="loading">
+                                            <template x-if="loading">
+                                                <span class="spinner-border spinner-border-sm" role="status"></span>
+                                            </template>
+                                            <template x-if="!loading && following">
+                                                <span>متابَع</span>
+                                            </template>
+                                            <template x-if="!loading && !following">
+                                                <span>متابعة</span>
+                                            </template>
+                                        </button>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+
+                @* ===== PAGINATION ===== *@
+                @if (Model.TotalPages > 1)
+                {
+                    <nav class="mt-4" aria-label="التنقل بين الصفحات">
+                        <ul class="pagination justify-content-center">
+                            @* Previous *@
+                            <li class="page-item @(Model.Page <= 1 ? "disabled" : "")">
+                                <a class="page-link"
+                                   asp-controller="Profile"
+                                   asp-action="@(isFollowersList ? "Followers" : "Following")"
+                                   asp-route-id="@Model.UserId"
+                                   asp-route-page="@(Model.Page - 1)"
+                                   aria-label="السابق">
+                                    <i class="bi bi-chevron-right"></i>
+                                </a>
+                            </li>
+
+                            @* Page Numbers *@
+                            @{
+                                var startPage = Math.Max(1, Model.Page - 2);
+                                var endPage = Math.Min(Model.TotalPages, Model.Page + 2);
+                            }
+
+                            @if (startPage > 1)
+                            {
+                                <li class="page-item">
+                                    <a class="page-link"
+                                       asp-controller="Profile"
+                                       asp-action="@(isFollowersList ? "Followers" : "Following")"
+                                       asp-route-id="@Model.UserId"
+                                       asp-route-page="1">1</a>
+                                </li>
+                                @if (startPage > 2)
+                                {
+                                    <li class="page-item disabled">
+                                        <span class="page-link">...</span>
+                                    </li>
+                                }
+                            }
+
+                            @for (var i = startPage; i <= endPage; i++)
+                            {
+                                <li class="page-item @(i == Model.Page ? "active" : "")">
+                                    <a class="page-link"
+                                       asp-controller="Profile"
+                                       asp-action="@(isFollowersList ? "Followers" : "Following")"
+                                       asp-route-id="@Model.UserId"
+                                       asp-route-page="@i">@i</a>
+                                </li>
+                            }
+
+                            @if (endPage < Model.TotalPages)
+                            {
+                                @if (endPage < Model.TotalPages - 1)
+                                {
+                                    <li class="page-item disabled">
+                                        <span class="page-link">...</span>
+                                    </li>
+                                }
+                                <li class="page-item">
+                                    <a class="page-link"
+                                       asp-controller="Profile"
+                                       asp-action="@(isFollowersList ? "Followers" : "Following")"
+                                       asp-route-id="@Model.UserId"
+                                       asp-route-page="@Model.TotalPages">@Model.TotalPages</a>
+                                </li>
+                            }
+
+                            @* Next *@
+                            <li class="page-item @(Model.Page >= Model.TotalPages ? "disabled" : "")">
+                                <a class="page-link"
+                                   asp-controller="Profile"
+                                   asp-action="@(isFollowersList ? "Followers" : "Following")"
+                                   asp-route-id="@Model.UserId"
+                                   asp-route-page="@(Model.Page + 1)"
+                                   aria-label="التالي">
+                                    <i class="bi bi-chevron-left"></i>
+                                </a>
+                            </li>
+                        </ul>
+                    </nav>
+                }
+            }
+        </div>
+    </div>
+</div>
+
+@section Styles {
+    <style>
+        .follow-user-card {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .follow-user-card:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.08) !important;
+        }
+
+        .follow-list-avatar {
+            width: 48px;
+            height: 48px;
+            object-fit: cover;
+            border: 2px solid var(--card-border);
+        }
+
+        .follow-list-avatar-initials {
+            width: 48px;
+            height: 48px;
+            font-size: 1rem;
+            font-weight: 700;
+            background-color: var(--clr-primary);
+            color: #fff;
+            border: 2px solid var(--card-border);
+        }
+
+        .badge-pro-sm {
+            background-color: rgba(245, 158, 11, 0.15);
+            color: #f59e0b;
+            font-size: 0.7rem;
+            padding: 0.2em 0.5em;
+        }
+
+        .badge-certified-sm {
+            background-color: rgba(139, 92, 246, 0.15);
+            color: #8b5cf6;
+            font-size: 0.7rem;
+            padding: 0.2em 0.5em;
+        }
+
+        .min-width-0 {
+            min-width: 0;
+        }
+
+        .nav-pills .nav-link {
+            color: var(--body-color);
+        }
+
+        .nav-pills .nav-link.active {
+            background-color: var(--clr-primary);
+            color: #fff;
+        }
+    </style>
+}
+
+@section Scripts {
+    <script>
+        function followListPage() {
+            return {
+                async toggleFollow(userId, el) {
+                    const component = Alpine.$data(el.closest('[x-data]'));
+                    if (component.loading) return;
+                    component.loading = true;
+
+                    const action = component.following ? 'Unfollow' : 'Follow';
+                    const url = `/Profile/${action}`;
+
+                    try {
+                        const formData = new FormData();
+                        formData.append('userId', userId);
+
+                        const tokenEl = document.querySelector('input[name="__RequestVerificationToken"]');
+                        if (tokenEl) {
+                            formData.append('__RequestVerificationToken', tokenEl.value);
+                        }
+
+                        const response = await fetch(url, {
+                            method: 'POST',
+                            body: formData
+                        });
+
+                        if (response.ok) {
+                            const data = await response.json();
+                            if (data.success) {
+                                component.following = !component.following;
+                            }
+                        }
+                    } catch (err) {
+                        console.error('Error toggling follow:', err);
+                    } finally {
+                        component.loading = false;
+                    }
+                }
+            };
+        }
+    </script>
+    @* Anti-forgery token for AJAX calls *@
+    <form id="__AjaxAntiForgeryForm" asp-controller="Profile" asp-action="Follow" method="post" style="display:none;">
+        @Html.AntiForgeryToken()
+    </form>
+}
