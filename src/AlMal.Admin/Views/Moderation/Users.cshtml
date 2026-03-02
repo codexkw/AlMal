@@ -1,0 +1,216 @@
+@model AlMal.Admin.ViewModels.UserManagementViewModel
+@using AlMal.Domain.Enums
+@{
+    ViewData["Title"] = "إدارة المستخدمين";
+}
+
+@* ملخص المستخدمين *@
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+    <div>
+        <span class="text-muted">إجمالي المستخدمين: @Model.TotalCount</span>
+    </div>
+    <a asp-action="Index" class="btn btn-outline-primary">
+        <i class="bi bi-shield-exclamation me-1"></i>قائمة الإشراف
+    </a>
+</div>
+
+@* نموذج البحث والفلترة *@
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" asp-action="Users" class="row g-3 align-items-end">
+            <div class="col-md-5">
+                <label class="form-label">بحث</label>
+                <input type="text" name="search" class="form-control"
+                       placeholder="ابحث بالاسم أو البريد الإلكتروني..."
+                       value="@Model.SearchTerm" />
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">نوع المستخدم</label>
+                <select name="type" class="form-select">
+                    <option value="">جميع الأنواع</option>
+                    <option value="Normal" selected="@(Model.TypeFilter == "Normal")">عادي</option>
+                    <option value="ProAnalyst" selected="@(Model.TypeFilter == "ProAnalyst")">محلل محترف</option>
+                    <option value="CertifiedAnalyst" selected="@(Model.TypeFilter == "CertifiedAnalyst")">محلل معتمد</option>
+                </select>
+            </div>
+            <div class="col-md-3 d-flex gap-2">
+                <button type="submit" class="btn btn-primary flex-grow-1">
+                    <i class="bi bi-search me-1"></i>بحث
+                </button>
+                <a asp-action="Users" class="btn btn-outline-secondary">
+                    <i class="bi bi-x-lg"></i>
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@* جدول المستخدمين *@
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>الاسم</th>
+                        <th>البريد الإلكتروني</th>
+                        <th>النوع</th>
+                        <th>الحالة</th>
+                        <th>المنشورات</th>
+                        <th>تاريخ التسجيل</th>
+                        <th>الإجراءات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.Users.Count == 0)
+                    {
+                        <tr>
+                            <td colspan="7" class="text-center text-muted py-4">لا يوجد مستخدمون</td>
+                        </tr>
+                    }
+                    @foreach (var user in Model.Users)
+                    {
+                        <tr>
+                            <td><strong>@user.DisplayName</strong></td>
+                            <td>
+                                <span class="text-muted small">@(user.Email ?? "-")</span>
+                            </td>
+                            <td>
+                                @switch (user.UserType)
+                                {
+                                    case UserType.Normal:
+                                        <span class="badge bg-secondary">عادي</span>
+                                        break;
+                                    case UserType.ProAnalyst:
+                                        <span class="badge bg-info text-dark">محلل محترف</span>
+                                        break;
+                                    case UserType.CertifiedAnalyst:
+                                        <span class="badge bg-primary">محلل معتمد</span>
+                                        break;
+                                }
+                            </td>
+                            <td>
+                                @if (user.IsActive)
+                                {
+                                    <span class="badge badge-active">مفعّل</span>
+                                }
+                                else
+                                {
+                                    <span class="badge badge-inactive">موقوف</span>
+                                }
+                            </td>
+                            <td>@user.PostCount</td>
+                            <td>
+                                <span class="text-muted small">@user.CreatedAt.ToString("yyyy-MM-dd")</span>
+                            </td>
+                            <td>
+                                <div class="d-flex gap-1 flex-wrap">
+                                    @if (user.IsActive)
+                                    {
+                                        <form asp-action="SuspendUser" method="post" class="d-inline"
+                                              onsubmit="return confirm('هل أنت متأكد من إيقاف هذا المستخدم؟');">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="userId" value="@user.UserId" />
+                                            <button type="submit" class="btn btn-sm btn-outline-danger" title="إيقاف">
+                                                <i class="bi bi-person-x"></i>
+                                            </button>
+                                        </form>
+                                    }
+                                    else
+                                    {
+                                        <form asp-action="ActivateUser" method="post" class="d-inline">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="userId" value="@user.UserId" />
+                                            <button type="submit" class="btn btn-sm btn-outline-success" title="تفعيل">
+                                                <i class="bi bi-person-check"></i>
+                                            </button>
+                                        </form>
+                                    }
+
+                                    @* ترقية المستخدم — متاح فقط لـ SuperAdmin *@
+                                    @if (User.IsInRole("SuperAdmin"))
+                                    {
+                                        <div class="dropdown d-inline">
+                                            <button class="btn btn-sm btn-outline-primary dropdown-toggle" type="button"
+                                                    data-bs-toggle="dropdown" aria-expanded="false" title="ترقية">
+                                                <i class="bi bi-arrow-up-circle"></i>
+                                            </button>
+                                            <ul class="dropdown-menu">
+                                                <li>
+                                                    <form asp-action="PromoteUser" method="post">
+                                                        @Html.AntiForgeryToken()
+                                                        <input type="hidden" name="userId" value="@user.UserId" />
+                                                        <input type="hidden" name="type" value="Normal" />
+                                                        <button type="submit" class="dropdown-item @(user.UserType == UserType.Normal ? "active" : "")">
+                                                            عادي
+                                                        </button>
+                                                    </form>
+                                                </li>
+                                                <li>
+                                                    <form asp-action="PromoteUser" method="post">
+                                                        @Html.AntiForgeryToken()
+                                                        <input type="hidden" name="userId" value="@user.UserId" />
+                                                        <input type="hidden" name="type" value="ProAnalyst" />
+                                                        <button type="submit" class="dropdown-item @(user.UserType == UserType.ProAnalyst ? "active" : "")">
+                                                            محلل محترف
+                                                        </button>
+                                                    </form>
+                                                </li>
+                                                <li>
+                                                    <form asp-action="PromoteUser" method="post">
+                                                        @Html.AntiForgeryToken()
+                                                        <input type="hidden" name="userId" value="@user.UserId" />
+                                                        <input type="hidden" name="type" value="CertifiedAnalyst" />
+                                                        <button type="submit" class="dropdown-item @(user.UserType == UserType.CertifiedAnalyst ? "active" : "")">
+                                                            محلل معتمد
+                                                        </button>
+                                                    </form>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    }
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@* ترقيم الصفحات *@
+@if (Model.TotalPages > 1)
+{
+    <nav aria-label="ترقيم الصفحات" class="mt-4">
+        <ul class="pagination justify-content-center">
+            <li class="page-item @(Model.Page <= 1 ? "disabled" : "")">
+                <a class="page-link" asp-action="Users"
+                   asp-route-search="@Model.SearchTerm"
+                   asp-route-type="@Model.TypeFilter"
+                   asp-route-page="@(Model.Page - 1)">
+                    السابق
+                </a>
+            </li>
+            @for (var i = 1; i <= Model.TotalPages; i++)
+            {
+                <li class="page-item @(i == Model.Page ? "active" : "")">
+                    <a class="page-link" asp-action="Users"
+                       asp-route-search="@Model.SearchTerm"
+                       asp-route-type="@Model.TypeFilter"
+                       asp-route-page="@i">
+                        @i
+                    </a>
+                </li>
+            }
+            <li class="page-item @(Model.Page >= Model.TotalPages ? "disabled" : "")">
+                <a class="page-link" asp-action="Users"
+                   asp-route-search="@Model.SearchTerm"
+                   asp-route-type="@Model.TypeFilter"
+                   asp-route-page="@(Model.Page + 1)">
+                    التالي
+                </a>
+            </li>
+        </ul>
+    </nav>
+}
