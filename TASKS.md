@@ -452,12 +452,12 @@
 
 ### 5.6 Admin: Academy & Analytics
 
-- [ ] Create `AdminAcademyController` in Admin
-- [ ] Build course CRUD with rich text editor
-- [ ] Build lesson management (reorder, video URL)
-- [ ] Build quiz builder (add questions, set correct answer)
-- [ ] Build enrollment analytics (completion rate, avg score)
-- [ ] Verify: Admin can create and manage courses end-to-end
+- [✅] Create `AdminAcademyController` in Admin (2026-03-02)
+- [✅] Build course CRUD with rich text editor (2026-03-02)
+- [✅] Build lesson management (reorder, video URL) (2026-03-02)
+- [✅] Build quiz builder (add questions, set correct answer) (2026-03-02)
+- [✅] Build enrollment analytics (completion rate, avg score) (2026-03-02)
+- [✅] Verify: Admin can create and manage courses end-to-end (2026-03-02)
 
 ---
 

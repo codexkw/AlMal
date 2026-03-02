@@ -1,0 +1,183 @@
+@model AlMal.Admin.ViewModels.LessonListViewModel
+@{
+    ViewData["Title"] = "دروس الدورة: " + Model.CourseTitleAr;
+}
+
+@* رأس الصفحة *@
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+    <div>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item"><a asp-action="Index" class="text-decoration-none">الدورات</a></li>
+                <li class="breadcrumb-item"><a asp-action="Edit" asp-route-id="@Model.CourseId" class="text-decoration-none">@Model.CourseTitleAr</a></li>
+                <li class="breadcrumb-item active">الدروس</li>
+            </ol>
+        </nav>
+        <span class="text-muted small mt-1 d-block">إجمالي الدروس: @Model.Lessons.Count</span>
+    </div>
+    <div class="d-flex gap-2">
+        <a asp-action="LessonCreate" asp-route-courseId="@Model.CourseId" class="btn btn-accent">
+            <i class="bi bi-plus-lg me-1"></i>درس جديد
+        </a>
+    </div>
+</div>
+
+@* نموذج إعادة الترتيب *@
+@if (Model.Lessons.Count > 1)
+{
+    <div class="card mb-3">
+        <div class="card-body py-2">
+            <form asp-action="ReorderLessons" method="post" id="reorderForm" class="d-flex align-items-center gap-2">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="courseId" value="@Model.CourseId" />
+                <input type="hidden" name="lessonOrder" id="lessonOrderInput" />
+                <span class="text-muted small"><i class="bi bi-arrows-move me-1"></i>اسحب الصفوف لإعادة ترتيب الدروس</span>
+                <button type="submit" class="btn btn-sm btn-primary ms-auto" id="saveOrderBtn" style="display:none;">
+                    <i class="bi bi-check-lg me-1"></i>حفظ الترتيب
+                </button>
+            </form>
+        </div>
+    </div>
+}
+
+@* جدول الدروس *@
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th style="width: 5%;">الترتيب</th>
+                        <th style="width: 35%;">العنوان</th>
+                        <th>المدة</th>
+                        <th>الفيديو</th>
+                        <th>الاختبار</th>
+                        <th>الإجراءات</th>
+                    </tr>
+                </thead>
+                <tbody id="lessonTableBody">
+                    @if (Model.Lessons.Count == 0)
+                    {
+                        <tr>
+                            <td colspan="6" class="text-center text-muted py-4">
+                                لا توجد دروس بعد.
+                                <a asp-action="LessonCreate" asp-route-courseId="@Model.CourseId" class="text-decoration-none">أضف درسًا جديدًا</a>
+                            </td>
+                        </tr>
+                    }
+                    @foreach (var lesson in Model.Lessons)
+                    {
+                        <tr data-lesson-id="@lesson.Id" style="cursor: grab;">
+                            <td class="text-muted">@lesson.SortOrder</td>
+                            <td>
+                                <a asp-action="LessonEdit" asp-route-id="@lesson.Id" class="text-decoration-none fw-semibold">
+                                    @lesson.TitleAr
+                                </a>
+                            </td>
+                            <td>
+                                <span class="text-muted">@lesson.DurationMinutes دقيقة</span>
+                            </td>
+                            <td>
+                                @if (lesson.HasVideo)
+                                {
+                                    <span class="badge badge-active"><i class="bi bi-play-circle me-1"></i>متاح</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">-</span>
+                                }
+                            </td>
+                            <td>
+                                @if (lesson.HasQuiz)
+                                {
+                                    <a asp-action="Quiz" asp-route-lessonId="@lesson.Id" class="badge badge-active text-decoration-none">
+                                        <i class="bi bi-check-circle me-1"></i>موجود
+                                    </a>
+                                }
+                                else
+                                {
+                                    <a asp-action="Quiz" asp-route-lessonId="@lesson.Id" class="badge badge-inactive text-decoration-none">
+                                        <i class="bi bi-plus me-1"></i>إنشاء
+                                    </a>
+                                }
+                            </td>
+                            <td>
+                                <div class="d-flex gap-1">
+                                    <a asp-action="LessonEdit" asp-route-id="@lesson.Id"
+                                       class="btn btn-sm btn-outline-primary" title="تعديل">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <a asp-action="Quiz" asp-route-lessonId="@lesson.Id"
+                                       class="btn btn-sm btn-outline-info" title="الاختبار">
+                                        <i class="bi bi-question-circle"></i>
+                                    </a>
+                                    <form asp-action="LessonDelete" asp-route-id="@lesson.Id" method="post"
+                                          onsubmit="return confirm('هل أنت متأكد من حذف هذا الدرس؟');">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" title="حذف">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Simple drag-and-drop reordering
+        (function () {
+            var tbody = document.getElementById('lessonTableBody');
+            if (!tbody) return;
+
+            var dragRow = null;
+
+            tbody.querySelectorAll('tr[data-lesson-id]').forEach(function (row) {
+                row.draggable = true;
+
+                row.addEventListener('dragstart', function (e) {
+                    dragRow = this;
+                    this.style.opacity = '0.5';
+                });
+
+                row.addEventListener('dragend', function (e) {
+                    this.style.opacity = '1';
+                    dragRow = null;
+                });
+
+                row.addEventListener('dragover', function (e) {
+                    e.preventDefault();
+                });
+
+                row.addEventListener('drop', function (e) {
+                    e.preventDefault();
+                    if (dragRow && dragRow !== this) {
+                        var allRows = Array.from(tbody.querySelectorAll('tr[data-lesson-id]'));
+                        var dragIndex = allRows.indexOf(dragRow);
+                        var dropIndex = allRows.indexOf(this);
+
+                        if (dragIndex < dropIndex) {
+                            tbody.insertBefore(dragRow, this.nextSibling);
+                        } else {
+                            tbody.insertBefore(dragRow, this);
+                        }
+
+                        // Show save button
+                        document.getElementById('saveOrderBtn').style.display = 'inline-flex';
+
+                        // Update hidden input with new order
+                        var newOrder = Array.from(tbody.querySelectorAll('tr[data-lesson-id]'))
+                            .map(function (r) { return r.dataset.lessonId; })
+                            .join(',');
+                        document.getElementById('lessonOrderInput').value = newOrder;
+                    }
+                });
+            });
+        })();
+    </script>
+}
