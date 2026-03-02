@@ -1,0 +1,79 @@
+name: Deploy AlMal.Admin
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "src/AlMal.Admin/**"
+      - "src/AlMal.Domain/**"
+      - "src/AlMal.Application/**"
+      - "src/AlMal.Infrastructure/**"
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-admin
+  cancel-in-progress: false
+
+env:
+  DOTNET_VERSION: "9.0.x"
+  IIS_SITE_NAME: AlMal-Admin
+  SITE_URL: https://admin.almal.codexkw.co
+
+jobs:
+  build-and-deploy:
+    name: Build & Deploy
+    runs-on: windows-latest
+    environment:
+      name: production-admin
+      url: ${{ env.SITE_URL }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 9 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore NuGet packages
+        run: dotnet restore AlMal.sln
+
+      - name: Build solution (Release)
+        run: dotnet build AlMal.sln --configuration Release --no-restore
+
+      - name: Run tests
+        run: dotnet test AlMal.sln --no-build --configuration Release --verbosity normal
+
+      - name: Publish AlMal.Admin
+        run: dotnet publish src/AlMal.Admin/AlMal.Admin.csproj --configuration Release --output ./publish/admin --no-build
+
+      - name: Install EF Core tools
+        run: dotnet tool install --global dotnet-ef
+
+      - name: Apply EF Core migrations
+        env:
+          ConnectionStrings__DefaultConnection: ${{ secrets.SQL_CONNECTION_STRING }}
+        run: dotnet ef database update --project src/AlMal.Infrastructure --startup-project src/AlMal.Admin --configuration Release
+
+      - name: Deploy to IIS via MSDeploy
+        run: |
+          $msdeploy = "C:\Program Files\IIS\Microsoft Web Deploy V3\msdeploy.exe"
+          & $msdeploy `
+            -verb:sync `
+            -source:contentPath="${{ github.workspace }}\publish\admin" `
+            -dest:contentPath="${{ env.IIS_SITE_NAME }}",computerName="https://${{ secrets.DEPLOY_SERVER }}:8172/msdeploy.axd",userName="${{ secrets.DEPLOY_USERNAME }}",password="${{ secrets.DEPLOY_PASSWORD }}",authType="basic" `
+            -allowUntrusted `
+            -enableRule:AppOffline
+        shell: pwsh
+
+      - name: Verify deployment
+        run: |
+          Start-Sleep -Seconds 15
+          try {
+            $response = Invoke-WebRequest -Uri "${{ env.SITE_URL }}/health" -SkipCertificateCheck -TimeoutSec 30 -UseBasicParsing
+            Write-Host "Health check passed: $($response.StatusCode)"
+          } catch {
+            Write-Host "Warning: Health check failed. Manual verification may be required. Error: $_"
+          }
+        shell: pwsh

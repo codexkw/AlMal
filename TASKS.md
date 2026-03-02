@@ -517,14 +517,14 @@
 
 ### 6.6 CI/CD: GitHub Actions Deployment
 
-- [ ] Create `.github/workflows/ci.yml` — build + test on every PR to main
-- [ ] Create `.github/workflows/deploy-web.yml` — deploy AlMal.Web to IIS `AlMal-Web` (almal.codexkw.co) on merge to main
-- [ ] Create `.github/workflows/deploy-admin.yml` — deploy AlMal.Admin to IIS `AlMal-Admin` (admin.almal.codexkw.co) on merge to main
-- [ ] Create `.github/workflows/deploy-api.yml` — deploy AlMal.API to IIS `AlMal-API` (api.almal.codexkw.co) on merge to main
-- [ ] Configure GitHub Secrets: SQL connection string, server credentials, IIS Web Deploy credentials
-- [ ] Configure Web Deploy publish profiles for each IIS site
-- [ ] Add EF Core migration step in deploy pipeline (auto-apply on deploy)
-- [ ] Add health check endpoint (`/health`) to Web, Admin, and API
+- [✅] Create `.github/workflows/ci.yml` — build + test on every PR to main (2026-03-02)
+- [✅] Create `.github/workflows/deploy-web.yml` — deploy AlMal.Web to IIS `AlMal-Web` (almal.codexkw.co) on merge to main (2026-03-02)
+- [✅] Create `.github/workflows/deploy-admin.yml` — deploy AlMal.Admin to IIS `AlMal-Admin` (admin.almal.codexkw.co) on merge to main (2026-03-02)
+- [✅] Create `.github/workflows/deploy-api.yml` — deploy AlMal.API to IIS `AlMal-API` (api.almal.codexkw.co) on merge to main (2026-03-02)
+- [✅] Configure GitHub Secrets: SQL connection string, server credentials, IIS Web Deploy credentials (2026-03-02) — referenced via ${{ secrets.* }}
+- [✅] Configure Web Deploy publish profiles for each IIS site (2026-03-02)
+- [✅] Add EF Core migration step in deploy pipeline (auto-apply on deploy) (2026-03-02)
+- [✅] Add health check endpoint (`/health`) to Web, Admin, and API (2026-03-02)
 - [ ] Test full CI/CD pipeline: PR → build → merge → deploy → verify live
 - [ ] Verify: All 3 sites deploy automatically on merge to main
 
@@ -532,9 +532,11 @@
 
 - [ ] Full end-to-end testing of all features
 - [ ] Fix all bugs found during UAT
-- [ ] Configure production appsettings
+- [✅] Configure production appsettings templates (2026-03-02) — .template files with placeholders
+- [✅] Create IIS publish profiles (Web, Admin, API) (2026-03-02)
+- [✅] Update .gitignore for pubxml.user and production config (2026-03-02)
 - [ ] Set up IIS on Windows Server
-- [ ] Configure GitHub Actions CI/CD pipeline
+- [✅] Configure GitHub Actions CI/CD pipeline (2026-03-02)
 - [ ] Deploy to production
 - [ ] Monitor for 48h after launch
 - [ ] Verify: Production site live and stable

@@ -93,6 +93,9 @@ appsettings.Production.json
 *.key
 *.pem
 
+## Publish profiles (user-specific credentials)
+*.pubxml.user
+
 ## Publish output
 publish/
 
