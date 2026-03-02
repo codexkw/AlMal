@@ -99,6 +99,7 @@ try
     builder.Services.AddScoped<DisclosureScraperJob>();
     builder.Services.AddScoped<StockPriceHistoryJob>();
 
+    builder.Services.AddSignalR();
     builder.Services.AddControllersWithViews();
 
     var app = builder.Build();
@@ -166,9 +167,16 @@ try
 
     app.MapStaticAssets();
 
+    app.MapHub<AlMal.Web.Hubs.MarketHub>("/hubs/market");
+
+    app.MapControllerRoute(
+        name: "market",
+        pattern: "market",
+        defaults: new { controller = "Market", action = "Index" });
+
     app.MapControllerRoute(
         name: "default",
-        pattern: "{controller=Home}/{action=Index}/{id?}")
+        pattern: "{controller=Market}/{action=Index}/{id?}")
         .WithStaticAssets();
 
     app.Run();
