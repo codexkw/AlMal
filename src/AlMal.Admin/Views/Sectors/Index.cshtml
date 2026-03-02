@@ -1,0 +1,81 @@
+@model AlMal.Admin.ViewModels.SectorListViewModel
+@{
+    ViewData["Title"] = "إدارة القطاعات";
+}
+
+@* رأس الصفحة *@
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+    <div>
+        <span class="text-muted">إجمالي القطاعات: @Model.Sectors.Count</span>
+    </div>
+    <a asp-action="Create" class="btn btn-accent">
+        <i class="bi bi-plus-lg me-1"></i>إضافة قطاع جديد
+    </a>
+</div>
+
+@* جدول القطاعات *@
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>الاسم بالعربية</th>
+                        <th>الاسم بالإنجليزية</th>
+                        <th>عدد الأسهم</th>
+                        <th>الحالة</th>
+                        <th>الإجراءات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.Sectors.Count == 0)
+                    {
+                        <tr>
+                            <td colspan="5" class="text-center text-muted py-4">لا توجد قطاعات</td>
+                        </tr>
+                    }
+                    @foreach (var sector in Model.Sectors)
+                    {
+                        <tr>
+                            <td><strong>@sector.NameAr</strong></td>
+                            <td dir="ltr" class="text-end">@(sector.NameEn ?? "-")</td>
+                            <td>
+                                <span class="badge bg-secondary">@sector.StockCount</span>
+                            </td>
+                            <td>
+                                <span class="badge @(sector.IsActive ? "badge-active" : "badge-inactive")">
+                                    @(sector.IsActive ? "مفعّل" : "معطّل")
+                                </span>
+                            </td>
+                            <td>
+                                <div class="d-flex gap-1">
+                                    <a asp-action="Edit" asp-route-id="@sector.Id"
+                                       class="btn btn-sm btn-outline-primary" title="تعديل">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    @if (sector.StockCount == 0)
+                                    {
+                                        <form asp-action="Delete" asp-route-id="@sector.Id" method="post"
+                                              onsubmit="return confirm('هل أنت متأكد من حذف هذا القطاع؟');">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" class="btn btn-sm btn-outline-danger" title="حذف">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </form>
+                                    }
+                                    else
+                                    {
+                                        <button class="btn btn-sm btn-outline-danger" disabled
+                                                title="لا يمكن حذف القطاع لأنه يحتوي على أسهم">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    }
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,90 @@
+@model AlMal.Admin.ViewModels.StockEditViewModel
+@{
+    ViewData["Title"] = "إضافة سهم جديد";
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">إضافة سهم جديد</h5>
+            </div>
+            <div class="card-body">
+                <form asp-action="Create" method="post">
+                    @Html.AntiForgeryToken()
+
+                    <div class="row g-3">
+                        @* رمز السهم *@
+                        <div class="col-md-6">
+                            <label asp-for="Symbol" class="form-label">رمز السهم</label>
+                            <input asp-for="Symbol" class="form-control" placeholder="مثال: NBKK" />
+                            <span asp-validation-for="Symbol" class="text-danger small"></span>
+                        </div>
+
+                        @* القطاع *@
+                        <div class="col-md-6">
+                            <label asp-for="SectorId" class="form-label">القطاع</label>
+                            <select asp-for="SectorId" class="form-select">
+                                <option value="">اختر القطاع</option>
+                                @foreach (var sector in Model.Sectors)
+                                {
+                                    <option value="@sector.Id">@sector.NameAr</option>
+                                }
+                            </select>
+                            <span asp-validation-for="SectorId" class="text-danger small"></span>
+                        </div>
+
+                        @* الاسم بالعربية *@
+                        <div class="col-md-6">
+                            <label asp-for="NameAr" class="form-label">الاسم بالعربية</label>
+                            <input asp-for="NameAr" class="form-control" placeholder="مثال: بنك الكويت الوطني" />
+                            <span asp-validation-for="NameAr" class="text-danger small"></span>
+                        </div>
+
+                        @* الاسم بالإنجليزية *@
+                        <div class="col-md-6">
+                            <label asp-for="NameEn" class="form-label">الاسم بالإنجليزية</label>
+                            <input asp-for="NameEn" class="form-control" dir="ltr" placeholder="e.g. National Bank of Kuwait" />
+                            <span asp-validation-for="NameEn" class="text-danger small"></span>
+                        </div>
+
+                        @* عدد الأسهم المصدرة *@
+                        <div class="col-md-6">
+                            <label asp-for="SharesOutstanding" class="form-label">عدد الأسهم المصدرة</label>
+                            <input asp-for="SharesOutstanding" class="form-control" type="number" dir="ltr" />
+                            <span asp-validation-for="SharesOutstanding" class="text-danger small"></span>
+                        </div>
+
+                        @* الحالة *@
+                        <div class="col-md-6 d-flex align-items-end">
+                            <div class="form-check form-switch">
+                                <input asp-for="IsActive" class="form-check-input" type="checkbox" role="switch" />
+                                <label asp-for="IsActive" class="form-check-label">مفعّل</label>
+                            </div>
+                        </div>
+
+                        @* الوصف *@
+                        <div class="col-12">
+                            <label asp-for="DescriptionAr" class="form-label">الوصف بالعربية</label>
+                            <textarea asp-for="DescriptionAr" class="form-control" rows="4"
+                                      placeholder="وصف مختصر عن الشركة..."></textarea>
+                            <span asp-validation-for="DescriptionAr" class="text-danger small"></span>
+                        </div>
+                    </div>
+
+                    @* أزرار الإجراءات *@
+                    <div class="d-flex gap-2 mt-4">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-lg me-1"></i>حفظ
+                        </button>
+                        <a asp-action="Index" class="btn btn-outline-secondary">إلغاء</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

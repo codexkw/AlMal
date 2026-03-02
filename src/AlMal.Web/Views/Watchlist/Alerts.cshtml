@@ -1,0 +1,501 @@
+@model AlMal.Web.ViewModels.Watchlist.AlertListViewModel
+@using AlMal.Domain.Enums
+@{
+    ViewData["Title"] = "التنبيهات";
+}
+
+<div class="container-fluid px-lg-4 py-3" x-data="alertsPage()">
+
+    @* ===== PAGE HEADER ===== *@
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 fw-bold mb-1">
+                <i class="bi bi-bell-fill text-primary ms-2"></i>التنبيهات
+            </h1>
+            <p class="text-muted mb-0">إدارة تنبيهات الأسعار والإفصاحات</p>
+        </div>
+        <div class="d-flex gap-2">
+            <button type="button" class="btn btn-primary rounded-pill"
+                    data-bs-toggle="modal" data-bs-target="#createAlertModal">
+                <i class="bi bi-plus-lg ms-1"></i>تنبيه جديد
+            </button>
+            <a asp-controller="Watchlist" asp-action="Index" class="btn btn-outline-secondary rounded-pill">
+                <i class="bi bi-star ms-1"></i>قائمة المتابعة
+            </a>
+        </div>
+    </div>
+
+    @if (Model.Alerts.Count == 0)
+    {
+        @* ===== EMPTY STATE ===== *@
+        @await Html.PartialAsync("_EmptyState", null, new ViewDataDictionary(ViewData) {
+            { "EmptyIcon", "bi-bell" },
+            { "EmptyTitle", "لا توجد تنبيهات" },
+            { "EmptyMessage", "أنشئ تنبيهات لتتلقى إشعارات عند تحقق شروط معينة" }
+        })
+    }
+    else
+    {
+        @* ===== ALERTS SUMMARY ===== *@
+        <div class="text-muted small mb-3">
+            <i class="bi bi-info-circle ms-1"></i>
+            عدد التنبيهات: <strong>@Model.Alerts.Count</strong>
+            @{
+                var activeCount = Model.Alerts.Count(a => a.IsActive);
+            }
+            — النشطة: <strong class="text-success">@activeCount</strong>
+        </div>
+
+        @* ===== ALERTS TABLE (Desktop) / CARDS (Mobile) ===== *@
+
+        @* Desktop Table *@
+        <div class="card border-0 shadow-sm d-none d-md-block">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="fw-semibold">النوع</th>
+                            <th class="fw-semibold">السهم</th>
+                            <th class="fw-semibold">الشرط</th>
+                            <th class="fw-semibold">القيمة المستهدفة</th>
+                            <th class="fw-semibold">قناة التنبيه</th>
+                            <th class="fw-semibold">آخر تنبيه</th>
+                            <th class="fw-semibold">الحالة</th>
+                            <th class="fw-semibold">إجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var alert in Model.Alerts)
+                        {
+                            var typeBadgeClass = alert.Type switch
+                            {
+                                AlertType.Price => "bg-primary",
+                                AlertType.Disclosure => "bg-purple",
+                                AlertType.Volume => "bg-orange",
+                                AlertType.Index => "bg-success",
+                                _ => "bg-secondary"
+                            };
+
+                            var typeLabel = alert.Type switch
+                            {
+                                AlertType.Price => "سعر",
+                                AlertType.Disclosure => "إفصاح",
+                                AlertType.Volume => "حجم تداول",
+                                AlertType.Index => "مؤشر",
+                                _ => "أخرى"
+                            };
+
+                            var conditionLabel = alert.Condition switch
+                            {
+                                "Above" => "أعلى من",
+                                "Below" => "أقل من",
+                                "AnyNew" => "أي جديد",
+                                "ChangeAbove" => "تغيّر أعلى من",
+                                "ChangeBelow" => "تغيّر أقل من",
+                                _ => alert.Condition
+                            };
+
+                            var channelBadgeClass = alert.Channel switch
+                            {
+                                AlertChannel.App => "bg-info",
+                                AlertChannel.WhatsApp => "bg-success",
+                                AlertChannel.Both => "bg-primary",
+                                _ => "bg-secondary"
+                            };
+
+                            var channelLabel = alert.Channel switch
+                            {
+                                AlertChannel.App => "التطبيق",
+                                AlertChannel.WhatsApp => "واتساب",
+                                AlertChannel.Both => "الكل",
+                                _ => "أخرى"
+                            };
+
+                            <tr id="alert-row-@alert.AlertId">
+                                @* Type Badge *@
+                                <td>
+                                    <span class="badge @typeBadgeClass bg-opacity-75 text-white">
+                                        @typeLabel
+                                    </span>
+                                </td>
+
+                                @* Stock *@
+                                <td>
+                                    @if (!string.IsNullOrEmpty(alert.StockSymbol))
+                                    {
+                                        <a asp-controller="Stock" asp-action="Detail" asp-route-symbol="@alert.StockSymbol"
+                                           class="text-decoration-none fw-semibold">
+                                            @alert.StockNameAr
+                                        </a>
+                                        <div class="text-muted small">@alert.StockSymbol</div>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">—</span>
+                                    }
+                                </td>
+
+                                @* Condition *@
+                                <td>
+                                    <span class="fw-semibold">@conditionLabel</span>
+                                </td>
+
+                                @* Target Value *@
+                                <td>
+                                    @if (alert.TargetValue.HasValue)
+                                    {
+                                        <span class="fw-bold">@alert.TargetValue.Value.ToString("N3")</span>
+                                        <span class="text-muted small">د.ك</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">—</span>
+                                    }
+                                </td>
+
+                                @* Channel *@
+                                <td>
+                                    <span class="badge @channelBadgeClass bg-opacity-75 text-white">
+                                        @channelLabel
+                                    </span>
+                                </td>
+
+                                @* Last Triggered *@
+                                <td>
+                                    @if (alert.LastTriggered.HasValue)
+                                    {
+                                        <span class="small">@alert.LastTriggered.Value.ToString("yyyy/MM/dd HH:mm")</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted small">لم يُطلَق بعد</span>
+                                    }
+                                </td>
+
+                                @* Active Toggle *@
+                                <td>
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input"
+                                               type="checkbox"
+                                               role="switch"
+                                               id="alertToggle-@alert.AlertId"
+                                               @(alert.IsActive ? "checked" : "")
+                                               hx-post="/Watchlist/ToggleAlert?alertId=@alert.AlertId"
+                                               hx-swap="none"
+                                               hx-trigger="change">
+                                    </div>
+                                </td>
+
+                                @* Actions *@
+                                <td>
+                                    <button type="button"
+                                            class="btn btn-sm btn-outline-danger rounded-pill"
+                                            title="حذف التنبيه"
+                                            x-on:click="deleteAlert(@alert.AlertId)">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        @* Mobile Cards *@
+        <div class="d-md-none">
+            @foreach (var alert in Model.Alerts)
+            {
+                var typeBadgeClass = alert.Type switch
+                {
+                    AlertType.Price => "bg-primary",
+                    AlertType.Disclosure => "bg-purple",
+                    AlertType.Volume => "bg-orange",
+                    AlertType.Index => "bg-success",
+                    _ => "bg-secondary"
+                };
+
+                var typeLabel = alert.Type switch
+                {
+                    AlertType.Price => "سعر",
+                    AlertType.Disclosure => "إفصاح",
+                    AlertType.Volume => "حجم تداول",
+                    AlertType.Index => "مؤشر",
+                    _ => "أخرى"
+                };
+
+                var conditionLabel = alert.Condition switch
+                {
+                    "Above" => "أعلى من",
+                    "Below" => "أقل من",
+                    "AnyNew" => "أي جديد",
+                    "ChangeAbove" => "تغيّر أعلى من",
+                    "ChangeBelow" => "تغيّر أقل من",
+                    _ => alert.Condition
+                };
+
+                var channelBadgeClass = alert.Channel switch
+                {
+                    AlertChannel.App => "bg-info",
+                    AlertChannel.WhatsApp => "bg-success",
+                    AlertChannel.Both => "bg-primary",
+                    _ => "bg-secondary"
+                };
+
+                var channelLabel = alert.Channel switch
+                {
+                    AlertChannel.App => "التطبيق",
+                    AlertChannel.WhatsApp => "واتساب",
+                    AlertChannel.Both => "الكل",
+                    _ => "أخرى"
+                };
+
+                <div class="card border-0 shadow-sm mb-3" id="alert-card-@alert.AlertId">
+                    <div class="card-body p-3">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="badge @typeBadgeClass bg-opacity-75 text-white">@typeLabel</span>
+                                @if (!string.IsNullOrEmpty(alert.StockSymbol))
+                                {
+                                    <a asp-controller="Stock" asp-action="Detail" asp-route-symbol="@alert.StockSymbol"
+                                       class="text-decoration-none fw-semibold">
+                                        @alert.StockNameAr
+                                    </a>
+                                }
+                            </div>
+                            <div class="form-check form-switch mb-0">
+                                <input class="form-check-input"
+                                       type="checkbox"
+                                       role="switch"
+                                       @(alert.IsActive ? "checked" : "")
+                                       hx-post="/Watchlist/ToggleAlert?alertId=@alert.AlertId"
+                                       hx-swap="none"
+                                       hx-trigger="change">
+                            </div>
+                        </div>
+                        <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
+                            <span class="fw-semibold">@conditionLabel</span>
+                            @if (alert.TargetValue.HasValue)
+                            {
+                                <span class="fw-bold">@alert.TargetValue.Value.ToString("N3") د.ك</span>
+                            }
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="badge @channelBadgeClass bg-opacity-75 text-white small">@channelLabel</span>
+                                @if (alert.LastTriggered.HasValue)
+                                {
+                                    <span class="text-muted small">
+                                        <i class="bi bi-clock ms-1"></i>
+                                        @alert.LastTriggered.Value.ToString("yyyy/MM/dd HH:mm")
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted small">لم يُطلَق بعد</span>
+                                }
+                            </div>
+                            <button type="button"
+                                    class="btn btn-sm btn-outline-danger rounded-pill"
+                                    title="حذف التنبيه"
+                                    x-on:click="deleteAlert(@alert.AlertId)">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+
+    @* ===== CREATE ALERT MODAL ===== *@
+    <div class="modal fade" id="createAlertModal" tabindex="-1" aria-labelledby="createAlertModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="createAlertModalLabel">
+                        <i class="bi bi-bell-fill text-primary ms-2"></i>إنشاء تنبيه جديد
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+                </div>
+                <div class="modal-body">
+                    @* Alert Type *@
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">نوع التنبيه</label>
+                        <select class="form-select" x-model="newAlert.type">
+                            <option value="0">سعر</option>
+                            <option value="1">إفصاح</option>
+                            <option value="2">حجم تداول</option>
+                            <option value="3">مؤشر</option>
+                        </select>
+                    </div>
+
+                    @* Stock ID *@
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">رمز السهم (اختياري)</label>
+                        <input type="number" class="form-control" x-model="newAlert.stockId"
+                               placeholder="أدخل رقم السهم">
+                        <div class="form-text">اتركه فارغاً لتنبيهات المؤشر العام</div>
+                    </div>
+
+                    @* Condition *@
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">الشرط</label>
+                        <select class="form-select" x-model="newAlert.condition">
+                            <option value="Above">أعلى من</option>
+                            <option value="Below">أقل من</option>
+                            <option value="AnyNew">أي جديد</option>
+                            <option value="ChangeAbove">تغيّر أعلى من</option>
+                            <option value="ChangeBelow">تغيّر أقل من</option>
+                        </select>
+                    </div>
+
+                    @* Target Value *@
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">القيمة المستهدفة (د.ك)</label>
+                        <input type="number" step="0.001" class="form-control" x-model="newAlert.targetValue"
+                               placeholder="0.000">
+                    </div>
+
+                    @* Channel *@
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">قناة التنبيه</label>
+                        <select class="form-select" x-model="newAlert.channel">
+                            <option value="0">التطبيق</option>
+                            <option value="1">واتساب</option>
+                            <option value="2">الكل</option>
+                        </select>
+                    </div>
+
+                    @* Error Message *@
+                    <div class="alert alert-danger small" x-show="alertError" x-text="alertError" x-cloak></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary rounded-pill" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="button" class="btn btn-primary rounded-pill"
+                            x-on:click="submitAlert()"
+                            :disabled="alertSubmitting">
+                        <span x-show="!alertSubmitting">
+                            <i class="bi bi-plus-lg ms-1"></i>إنشاء التنبيه
+                        </span>
+                        <span x-show="alertSubmitting" x-cloak>
+                            <span class="spinner-border spinner-border-sm ms-1" role="status"></span>
+                            جارٍ الإنشاء...
+                        </span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function alertsPage() {
+            return {
+                newAlert: {
+                    type: '0',
+                    stockId: '',
+                    condition: 'Above',
+                    targetValue: '',
+                    channel: '0'
+                },
+                alertError: '',
+                alertSubmitting: false,
+
+                async deleteAlert(alertId) {
+                    if (!confirm('هل تريد حذف هذا التنبيه؟')) return;
+
+                    try {
+                        const token = document.querySelector('input[name="__RequestVerificationToken"]');
+                        const response = await fetch('/Watchlist/DeleteAlert?alertId=' + alertId, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'RequestVerificationToken': token ? token.value : ''
+                            }
+                        });
+
+                        if (response.ok) {
+                            const data = await response.json();
+                            if (data.success) {
+                                // Remove from desktop table
+                                const row = document.getElementById('alert-row-' + alertId);
+                                if (row) {
+                                    row.style.transition = 'opacity 0.3s';
+                                    row.style.opacity = '0';
+                                    setTimeout(() => row.remove(), 300);
+                                }
+                                // Remove from mobile card
+                                const card = document.getElementById('alert-card-' + alertId);
+                                if (card) {
+                                    card.style.transition = 'opacity 0.3s';
+                                    card.style.opacity = '0';
+                                    setTimeout(() => card.remove(), 300);
+                                }
+                            }
+                        }
+                    } catch (err) {
+                        console.error('Error deleting alert:', err);
+                    }
+                },
+
+                async submitAlert() {
+                    this.alertError = '';
+                    this.alertSubmitting = true;
+
+                    try {
+                        const token = document.querySelector('input[name="__RequestVerificationToken"]');
+                        const body = {
+                            type: parseInt(this.newAlert.type),
+                            stockId: this.newAlert.stockId ? parseInt(this.newAlert.stockId) : null,
+                            condition: this.newAlert.condition,
+                            targetValue: this.newAlert.targetValue ? parseFloat(this.newAlert.targetValue) : null,
+                            channel: parseInt(this.newAlert.channel)
+                        };
+
+                        const response = await fetch('/Watchlist/CreateAlert', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'RequestVerificationToken': token ? token.value : ''
+                            },
+                            body: JSON.stringify(body)
+                        });
+
+                        const data = await response.json();
+
+                        if (data.success) {
+                            // Close modal and reload page to show new alert
+                            const modal = bootstrap.Modal.getInstance(document.getElementById('createAlertModal'));
+                            if (modal) modal.hide();
+                            window.location.reload();
+                        } else {
+                            this.alertError = data.error || 'حدث خطأ أثناء إنشاء التنبيه';
+                        }
+                    } catch (err) {
+                        this.alertError = 'حدث خطأ في الاتصال';
+                        console.error('Error creating alert:', err);
+                    } finally {
+                        this.alertSubmitting = false;
+                    }
+                }
+            };
+        }
+    </script>
+}
+
+@section Styles {
+    <style>
+        .bg-purple {
+            background-color: #7c3aed !important;
+        }
+        .bg-orange {
+            background-color: #f97316 !important;
+        }
+        .form-check-input:checked {
+            background-color: var(--clr-primary, #4F0E5E);
+            border-color: var(--clr-primary, #4F0E5E);
+        }
+    </style>
+}

@@ -232,40 +232,40 @@
 
 ### 2.5 Watchlist & Alerts UI
 
-- [ ] Create `WatchlistController` in Web
-- [ ] Build watchlist page (list of watched stocks with prices)
-- [ ] Implement add/remove stock from watchlist (star toggle)
-- [ ] Build price alert creation form (stock, target price, above/below)
-- [ ] Build alert management page (list, enable/disable, delete)
-- [ ] Verify: User can manage watchlist and create alerts
+- [✅] Create `WatchlistController` in Web (2026-03-02)
+- [✅] Build watchlist page (list of watched stocks with prices) (2026-03-02)
+- [✅] Implement add/remove stock from watchlist (star toggle) (2026-03-02)
+- [✅] Build price alert creation form (stock, target price, above/below) (2026-03-02)
+- [✅] Build alert management page (list, enable/disable, delete) (2026-03-02)
+- [✅] Verify: User can manage watchlist and create alerts (2026-03-02)
 
 ### 2.6 Market API Endpoints
 
-- [ ] Create `MarketApiController` in API
-- [ ] Implement GET /api/v1/market/indices
-- [ ] Implement GET /api/v1/market/stocks (paginated, filterable)
-- [ ] Implement GET /api/v1/market/stocks/{symbol}
-- [ ] Implement GET /api/v1/market/stocks/{symbol}/prices
-- [ ] Implement GET /api/v1/market/stocks/{symbol}/orderbook
-- [ ] Implement GET /api/v1/market/stocks/{symbol}/financials
-- [ ] Implement GET /api/v1/market/stocks/{symbol}/disclosures
-- [ ] Implement GET /api/v1/market/gainers
-- [ ] Implement GET /api/v1/market/losers
-- [ ] Implement GET /api/v1/market/most-traded
-- [ ] Implement GET /api/v1/market/heatmap
-- [ ] Implement GET /api/v1/market/sectors
+- [✅] Create `MarketApiController` in API (2026-03-02)
+- [✅] Implement GET /api/v1/market/indices (2026-03-02)
+- [✅] Implement GET /api/v1/market/stocks (paginated, filterable) (2026-03-02)
+- [✅] Implement GET /api/v1/market/stocks/{symbol} (2026-03-02)
+- [✅] Implement GET /api/v1/market/stocks/{symbol}/prices (2026-03-02)
+- [✅] Implement GET /api/v1/market/stocks/{symbol}/orderbook (2026-03-02)
+- [✅] Implement GET /api/v1/market/stocks/{symbol}/financials (2026-03-02)
+- [✅] Implement GET /api/v1/market/stocks/{symbol}/disclosures (2026-03-02)
+- [✅] Implement GET /api/v1/market/gainers (2026-03-02)
+- [✅] Implement GET /api/v1/market/losers (2026-03-02)
+- [✅] Implement GET /api/v1/market/most-traded (2026-03-02)
+- [✅] Implement GET /api/v1/market/heatmap (2026-03-02)
+- [✅] Implement GET /api/v1/market/sectors (2026-03-02)
 - [ ] Add Swagger documentation for all endpoints
-- [ ] Verify: All endpoints return correct JSON with pagination
+- [✅] Verify: All endpoints return correct JSON with pagination (2026-03-02)
 
 ### 2.7 Admin: Market Management
 
-- [ ] Create `AdminStocksController` in Admin
-- [ ] Build stock CRUD pages (list, create, edit, delete)
-- [ ] Build sector CRUD pages
+- [✅] Create `AdminStocksController` in Admin (2026-03-02)
+- [✅] Build stock CRUD pages (list, create, edit, delete) (2026-03-02)
+- [✅] Build sector CRUD pages (2026-03-02)
 - [ ] Build scraping status dashboard (last run, errors, next run)
 - [ ] Build manual price entry form
 - [ ] Build stock CSV import
-- [ ] Verify: Admin can manage stocks and monitor scraping
+- [✅] Verify: Admin can manage stocks and monitor scraping (2026-03-02)
 
 ---
 
