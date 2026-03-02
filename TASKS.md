@@ -338,14 +338,14 @@
 
 ### 4.1 User Profiles & Follow System
 
-- [ ] Create `ProfileController` in Web
-- [ ] Build public profile page (/user/{displayName})
-- [ ] Build profile header (avatar, name, badge, bio, follower counts)
-- [ ] Build edit profile page (DisplayName, Bio, Avatar with crop)
-- [ ] Implement follow/unfollow toggle
-- [ ] Update denormalized follower/following counts
-- [ ] Build followers/following list pages
-- [ ] Verify: Profile pages render, follow system works
+- [✅] Create `ProfileController` in Web (2026-03-02)
+- [✅] Build public profile page (/user/{displayName}) (2026-03-02)
+- [✅] Build profile header (avatar, name, badge, bio, follower counts) (2026-03-02)
+- [✅] Build edit profile page (DisplayName, Bio, Avatar with crop) (2026-03-02)
+- [✅] Implement follow/unfollow toggle (2026-03-02)
+- [✅] Update denormalized follower/following counts (2026-03-02)
+- [✅] Build followers/following list pages (2026-03-02)
+- [✅] Verify: Profile pages render, follow system works (2026-03-02)
 
 ### 4.2 Post System
 
