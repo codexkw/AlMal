@@ -392,9 +392,10 @@ public class ClaudeAiService : IAiAnalysisService
     {
         var apiKey = _configuration["ExternalApis:Anthropic:ApiKey"];
 
-        if (string.IsNullOrWhiteSpace(apiKey))
+        if (string.IsNullOrWhiteSpace(apiKey) || apiKey == "SET_VIA_ENV_VARIABLE")
         {
-            _logger.LogWarning("Anthropic API key is not configured at ExternalApis:Anthropic:ApiKey");
+            _logger.LogWarning("Anthropic API key is not configured at ExternalApis:Anthropic:ApiKey. Current value: {KeyPrefix}",
+                string.IsNullOrWhiteSpace(apiKey) ? "(empty)" : apiKey[..Math.Min(10, apiKey.Length)] + "...");
             return FallbackMessage;
         }
 
@@ -437,7 +438,8 @@ public class ClaudeAiService : IAiAnalysisService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error calling Claude API");
+            _logger.LogError(ex, "Error calling Claude API. Model: {Model}, ApiKeyPrefix: {KeyPrefix}",
+                ModelId, apiKey[..Math.Min(10, apiKey.Length)] + "...");
             return FallbackMessage;
         }
     }
