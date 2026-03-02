@@ -1,0 +1,198 @@
+@model AlMal.Admin.ViewModels.AlertDeliveryStatsViewModel
+@{
+    ViewData["Title"] = "تحليلات التسليم";
+}
+
+@* رابط العودة *@
+<div class="mb-4">
+    <a href="/Alerts" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-right me-1"></i>العودة إلى التنبيهات
+    </a>
+</div>
+
+@* إحصائيات التسليم الرئيسية *@
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-lg-3">
+        <div class="card text-center">
+            <div class="card-body py-3">
+                <i class="bi bi-send fs-2 text-primary d-block mb-2"></i>
+                <div class="text-muted small mb-1">إجمالي عمليات التسليم</div>
+                <div class="fs-3 fw-bold">@Model.TotalDeliveries</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="card text-center">
+            <div class="card-body py-3">
+                <i class="bi bi-check-circle fs-2 text-positive d-block mb-2"></i>
+                <div class="text-muted small mb-1">تم الإرسال</div>
+                <div class="fs-3 fw-bold text-positive">@Model.SentCount</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="card text-center">
+            <div class="card-body py-3">
+                <i class="bi bi-x-circle fs-2 text-negative d-block mb-2"></i>
+                <div class="text-muted small mb-1">فشل الإرسال</div>
+                <div class="fs-3 fw-bold text-negative">@Model.FailedCount</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="card text-center">
+            <div class="card-body py-3">
+                <i class="bi bi-hourglass-split fs-2 text-warning d-block mb-2"></i>
+                <div class="text-muted small mb-1">قيد الانتظار</div>
+                <div class="fs-3 fw-bold text-warning">@Model.PendingCount</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* نسبة النجاح *@
+<div class="card mb-4">
+    <div class="card-header">
+        <i class="bi bi-speedometer2 me-1"></i>نسبة نجاح التسليم
+    </div>
+    <div class="card-body">
+        <div class="d-flex align-items-center gap-3 mb-2">
+            <span class="fs-2 fw-bold">@Model.SuccessRate%</span>
+            <span class="text-muted">معدل النجاح</span>
+        </div>
+        <div class="progress" style="height: 24px;">
+            <div class="progress-bar bg-success" role="progressbar"
+                 style="width: @Model.SuccessRate%"
+                 aria-valuenow="@Model.SuccessRate" aria-valuemin="0" aria-valuemax="100">
+                تم الإرسال (@Model.SentCount)
+            </div>
+            @if (Model.TotalDeliveries > 0)
+            {
+                var failedPct = Math.Round((decimal)Model.FailedCount / Model.TotalDeliveries * 100, 1);
+                var pendingPct = Math.Round((decimal)Model.PendingCount / Model.TotalDeliveries * 100, 1);
+                <div class="progress-bar bg-danger" role="progressbar"
+                     style="width: @failedPct%"
+                     aria-valuenow="@failedPct" aria-valuemin="0" aria-valuemax="100">
+                    فشل (@Model.FailedCount)
+                </div>
+                <div class="progress-bar bg-warning" role="progressbar"
+                     style="width: @pendingPct%"
+                     aria-valuenow="@pendingPct" aria-valuemin="0" aria-valuemax="100">
+                    انتظار (@Model.PendingCount)
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<div class="row g-3">
+    @* توزيع القنوات *@
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header">
+                <i class="bi bi-diagram-3 me-1"></i>توزيع القنوات
+            </div>
+            <div class="card-body">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>القناة</th>
+                            <th class="text-center">العدد</th>
+                            <th class="text-center">النسبة</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @{
+                            var total = Model.TotalAlerts > 0 ? Model.TotalAlerts : 1;
+                        }
+                        <tr>
+                            <td><i class="bi bi-app me-1"></i>التطبيق</td>
+                            <td class="text-center">@Model.AppChannelCount</td>
+                            <td class="text-center">@(Math.Round((decimal)Model.AppChannelCount / total * 100, 1))%</td>
+                        </tr>
+                        <tr>
+                            <td><i class="bi bi-whatsapp me-1 text-success"></i>واتساب</td>
+                            <td class="text-center">@Model.WhatsAppChannelCount</td>
+                            <td class="text-center">@(Math.Round((decimal)Model.WhatsAppChannelCount / total * 100, 1))%</td>
+                        </tr>
+                        <tr>
+                            <td><i class="bi bi-layers me-1 text-primary"></i>الكل</td>
+                            <td class="text-center">@Model.BothChannelCount</td>
+                            <td class="text-center">@(Math.Round((decimal)Model.BothChannelCount / total * 100, 1))%</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    @* توزيع أنواع التنبيهات *@
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header">
+                <i class="bi bi-tags me-1"></i>توزيع أنواع التنبيهات
+            </div>
+            <div class="card-body">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>النوع</th>
+                            <th class="text-center">العدد</th>
+                            <th class="text-center">النسبة</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><i class="bi bi-currency-dollar me-1"></i>سعر</td>
+                            <td class="text-center">@Model.PriceAlertCount</td>
+                            <td class="text-center">@(Math.Round((decimal)Model.PriceAlertCount / total * 100, 1))%</td>
+                        </tr>
+                        <tr>
+                            <td><i class="bi bi-file-earmark-text me-1"></i>إفصاح</td>
+                            <td class="text-center">@Model.DisclosureAlertCount</td>
+                            <td class="text-center">@(Math.Round((decimal)Model.DisclosureAlertCount / total * 100, 1))%</td>
+                        </tr>
+                        <tr>
+                            <td><i class="bi bi-bar-chart me-1"></i>حجم تداول</td>
+                            <td class="text-center">@Model.VolumeAlertCount</td>
+                            <td class="text-center">@(Math.Round((decimal)Model.VolumeAlertCount / total * 100, 1))%</td>
+                        </tr>
+                        <tr>
+                            <td><i class="bi bi-graph-up me-1"></i>مؤشر</td>
+                            <td class="text-center">@Model.IndexAlertCount</td>
+                            <td class="text-center">@(Math.Round((decimal)Model.IndexAlertCount / total * 100, 1))%</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* إحصائيات التنبيهات *@
+<div class="row g-3 mt-3">
+    <div class="col-sm-6 col-lg-4">
+        <div class="card text-center">
+            <div class="card-body py-3">
+                <div class="text-muted small mb-1">إجمالي التنبيهات</div>
+                <div class="fs-3 fw-bold">@Model.TotalAlerts</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-4">
+        <div class="card text-center">
+            <div class="card-body py-3">
+                <div class="text-muted small mb-1">تنبيهات نشطة</div>
+                <div class="fs-3 fw-bold text-positive">@Model.ActiveAlerts</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-4">
+        <div class="card text-center">
+            <div class="card-body py-3">
+                <div class="text-muted small mb-1">تنبيهات معطلة</div>
+                <div class="fs-3 fw-bold text-negative">@Model.InactiveAlerts</div>
+            </div>
+        </div>
+    </div>
+</div>

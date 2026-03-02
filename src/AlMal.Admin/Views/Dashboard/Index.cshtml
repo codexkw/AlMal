@@ -1,0 +1,267 @@
+@model AlMal.Admin.ViewModels.DashboardViewModel
+@{
+    ViewData["Title"] = "لوحة التحكم";
+}
+
+@* إحصائيات المستخدمين *@
+<h5 class="mb-3"><i class="bi bi-people me-1"></i>المستخدمون</h5>
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-lg-3">
+        <div class="card text-center">
+            <div class="card-body py-3">
+                <div class="text-muted small mb-1">إجمالي المستخدمين</div>
+                <div class="fs-3 fw-bold">@Model.TotalUsers</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="card text-center">
+            <div class="card-body py-3">
+                <div class="text-muted small mb-1">المستخدمون النشطون</div>
+                <div class="fs-3 fw-bold text-positive">@Model.ActiveUsers</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="card text-center">
+            <div class="card-body py-3">
+                <div class="text-muted small mb-1">جدد (7 أيام)</div>
+                <div class="fs-3 fw-bold text-primary">@Model.NewUsersLast7Days</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="card text-center">
+            <div class="card-body py-3">
+                <div class="text-muted small mb-1">جدد (30 يوم)</div>
+                <div class="fs-3 fw-bold">@Model.NewUsersLast30Days</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* نمو المستخدمين *@
+@if (Model.UserGrowthChart.Count > 0)
+{
+    <div class="card mb-4">
+        <div class="card-header">
+            <i class="bi bi-graph-up me-1"></i>نمو المستخدمين (آخر 30 يوم)
+        </div>
+        <div class="card-body">
+            <div class="d-flex align-items-end gap-1" style="height: 200px;">
+                @{
+                    var maxCount = Model.UserGrowthChart.Max(p => p.Count);
+                    maxCount = maxCount > 0 ? maxCount : 1;
+                }
+                @foreach (var point in Model.UserGrowthChart)
+                {
+                    var heightPct = (int)((double)point.Count / maxCount * 100);
+                    <div class="d-flex flex-column align-items-center flex-fill" title="@point.Date: @point.Count مستخدم">
+                        <small class="text-muted mb-1" style="font-size: 0.65rem;">@point.Count</small>
+                        <div class="w-100 rounded-top" style="height: @(heightPct)%; min-height: 2px; background-color: var(--clr-primary);"></div>
+                        <small class="text-muted mt-1" style="font-size: 0.6rem;">@point.Date</small>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+}
+
+@* إحصائيات التفاعل *@
+<h5 class="mb-3"><i class="bi bi-chat-dots me-1"></i>التفاعل</h5>
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-lg-3">
+        <div class="card text-center">
+            <div class="card-body py-3">
+                <i class="bi bi-file-post fs-4 text-primary d-block mb-1"></i>
+                <div class="text-muted small mb-1">إجمالي المنشورات</div>
+                <div class="fs-3 fw-bold">@Model.TotalPosts</div>
+                <div class="text-muted small">@Model.PostsLast7Days في آخر 7 أيام</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="card text-center">
+            <div class="card-body py-3">
+                <i class="bi bi-chat-left-text fs-4 text-info d-block mb-1"></i>
+                <div class="text-muted small mb-1">إجمالي التعليقات</div>
+                <div class="fs-3 fw-bold">@Model.TotalComments</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="card text-center">
+            <div class="card-body py-3">
+                <i class="bi bi-heart fs-4 text-negative d-block mb-1"></i>
+                <div class="text-muted small mb-1">إجمالي الإعجابات</div>
+                <div class="fs-3 fw-bold">@Model.TotalLikes</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="card text-center">
+            <div class="card-body py-3">
+                <i class="bi bi-whatsapp fs-4 text-success d-block mb-1"></i>
+                <div class="text-muted small mb-1">مشتركو واتساب</div>
+                <div class="fs-3 fw-bold text-success">@Model.WhatsAppOptInCount</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* إحصائيات السوق *@
+<h5 class="mb-3"><i class="bi bi-graph-up me-1"></i>بيانات السوق</h5>
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-lg-3">
+        <div class="card text-center">
+            <div class="card-body py-3">
+                <div class="text-muted small mb-1">إجمالي الأسهم</div>
+                <div class="fs-3 fw-bold">@Model.TotalStocks</div>
+                <div class="text-muted small">@Model.ActiveStocks نشط</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="card text-center">
+            <div class="card-body py-3">
+                <div class="text-muted small mb-1">الإفصاحات</div>
+                <div class="fs-3 fw-bold">@Model.TotalDisclosures</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="card text-center">
+            <div class="card-body py-3">
+                <div class="text-muted small mb-1">المقالات الإخبارية</div>
+                <div class="fs-3 fw-bold">@Model.TotalNewsArticles</div>
+                <div class="text-muted small">@Model.NewsLast7Days في آخر 7 أيام</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="card text-center">
+            <div class="card-body py-3">
+                <div class="text-muted small mb-1">التنبيهات النشطة</div>
+                <div class="fs-3 fw-bold text-warning">@Model.ActiveAlertsCount</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* الأسهم الأكثر شعبية *@
+<div class="row g-3 mb-4">
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header">
+                <i class="bi bi-star me-1"></i>الأكثر متابعة
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>الرمز</th>
+                                <th>الاسم</th>
+                                <th class="text-center">المتابعون</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (Model.MostWatchlisted.Count == 0)
+                            {
+                                <tr>
+                                    <td colspan="4" class="text-center text-muted py-3">لا توجد بيانات</td>
+                                </tr>
+                            }
+                            @{ var rank = 1; }
+                            @foreach (var stock in Model.MostWatchlisted)
+                            {
+                                <tr>
+                                    <td>@rank</td>
+                                    <td class="fw-semibold">@stock.Symbol</td>
+                                    <td>@stock.NameAr</td>
+                                    <td class="text-center">
+                                        <span class="badge bg-primary">@stock.Count</span>
+                                    </td>
+                                </tr>
+                                rank++;
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header">
+                <i class="bi bi-chat-square-text me-1"></i>الأكثر نقاشاً
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>الرمز</th>
+                                <th>الاسم</th>
+                                <th class="text-center">الإشارات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (Model.MostDiscussed.Count == 0)
+                            {
+                                <tr>
+                                    <td colspan="4" class="text-center text-muted py-3">لا توجد بيانات</td>
+                                </tr>
+                            }
+                            @{ rank = 1; }
+                            @foreach (var stock in Model.MostDiscussed)
+                            {
+                                <tr>
+                                    <td>@rank</td>
+                                    <td class="fw-semibold">@stock.Symbol</td>
+                                    <td>@stock.NameAr</td>
+                                    <td class="text-center">
+                                        <span class="badge bg-info text-dark">@stock.Count</span>
+                                    </td>
+                                </tr>
+                                rank++;
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* إحصائيات الأكاديمية *@
+<h5 class="mb-3"><i class="bi bi-mortarboard me-1"></i>الأكاديمية</h5>
+<div class="row g-3 mb-4">
+    <div class="col-sm-4">
+        <div class="card text-center">
+            <div class="card-body py-3">
+                <div class="text-muted small mb-1">الدورات</div>
+                <div class="fs-3 fw-bold">@Model.TotalCourses</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-4">
+        <div class="card text-center">
+            <div class="card-body py-3">
+                <div class="text-muted small mb-1">التسجيلات</div>
+                <div class="fs-3 fw-bold">@Model.TotalEnrollments</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-4">
+        <div class="card text-center">
+            <div class="card-body py-3">
+                <div class="text-muted small mb-1">الشهادات</div>
+                <div class="fs-3 fw-bold text-positive">@Model.TotalCertificates</div>
+            </div>
+        </div>
+    </div>
+</div>

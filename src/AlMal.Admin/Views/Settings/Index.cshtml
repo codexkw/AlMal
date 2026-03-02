@@ -1,0 +1,164 @@
+@model AlMal.Admin.ViewModels.SettingsViewModel
+@{
+    ViewData["Title"] = "إعدادات النظام";
+}
+
+<div class="mb-3">
+    <span class="badge bg-warning text-dark">
+        <i class="bi bi-shield-lock me-1"></i>المشرف العام فقط
+    </span>
+</div>
+
+<form method="post" asp-action="Save">
+    @Html.AntiForgeryToken()
+
+    @* مفاتيح API *@
+    <div class="card mb-4">
+        <div class="card-header">
+            <i class="bi bi-key me-1"></i>مفاتيح API
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">مفتاح Claude AI</label>
+                    <input type="text" class="form-control font-monospace" value="@Model.ClaudeApiKey" readonly />
+                    <div class="form-text">يتم تعيينه من ملف الإعدادات</div>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">مفتاح WhatsApp</label>
+                    <input type="text" class="form-control font-monospace" value="@Model.WhatsAppApiKey" readonly />
+                    <div class="form-text">يتم تعيينه من ملف الإعدادات</div>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">مفتاح الأخبار</label>
+                    <input type="text" class="form-control font-monospace" value="@Model.NewsApiKey" readonly />
+                    <div class="form-text">يتم تعيينه من ملف الإعدادات</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @* جداول المهام *@
+    <div class="card mb-4">
+        <div class="card-header">
+            <i class="bi bi-clock-history me-1"></i>جداول المهام المجدولة
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-6 col-lg-4">
+                    <label class="form-label">جلب بيانات السوق</label>
+                    <input type="text" name="MarketScraperSchedule" class="form-control font-monospace"
+                           value="@Model.MarketScraperSchedule" />
+                    <div class="form-text">Cron: كل 30 ثانية</div>
+                </div>
+                <div class="col-md-6 col-lg-4">
+                    <label class="form-label">سجل الأوامر</label>
+                    <input type="text" name="OrderBookSchedule" class="form-control font-monospace"
+                           value="@Model.OrderBookSchedule" />
+                    <div class="form-text">Cron: كل دقيقة</div>
+                </div>
+                <div class="col-md-6 col-lg-4">
+                    <label class="form-label">الإفصاحات</label>
+                    <input type="text" name="DisclosureSchedule" class="form-control font-monospace"
+                           value="@Model.DisclosureSchedule" />
+                    <div class="form-text">Cron: كل 5 دقائق</div>
+                </div>
+                <div class="col-md-6 col-lg-4">
+                    <label class="form-label">الأخبار</label>
+                    <input type="text" name="NewsSchedule" class="form-control font-monospace"
+                           value="@Model.NewsSchedule" />
+                    <div class="form-text">Cron: كل 15 دقيقة</div>
+                </div>
+                <div class="col-md-6 col-lg-4">
+                    <label class="form-label">محرك التنبيهات</label>
+                    <input type="text" name="AlertEngineSchedule" class="form-control font-monospace"
+                           value="@Model.AlertEngineSchedule" />
+                    <div class="form-text">Cron: كل 30 ثانية</div>
+                </div>
+                <div class="col-md-6 col-lg-4">
+                    <label class="form-label">معالج الذكاء الاصطناعي</label>
+                    <input type="text" name="AiProcessorSchedule" class="form-control font-monospace"
+                           value="@Model.AiProcessorSchedule" />
+                    <div class="form-text">Cron: كل 10 دقائق</div>
+                </div>
+                <div class="col-md-6 col-lg-4">
+                    <label class="form-label">ملخص السوق اليومي</label>
+                    <input type="text" name="DailyMarketSummarySchedule" class="form-control font-monospace"
+                           value="@Model.DailyMarketSummarySchedule" />
+                    <div class="form-text">Cron: 9:45 صباحاً UTC أحد-خميس</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @* إعدادات الذكاء الاصطناعي *@
+    <div class="card mb-4">
+        <div class="card-header">
+            <i class="bi bi-robot me-1"></i>إعدادات الذكاء الاصطناعي
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-6 col-lg-3">
+                    <label class="form-label">النموذج</label>
+                    <input type="text" name="AiModel" class="form-control font-monospace" value="@Model.AiModel" />
+                </div>
+                <div class="col-md-6 col-lg-3">
+                    <label class="form-label">الحد الأقصى للرموز (ملخص)</label>
+                    <input type="number" name="AiMaxTokensSummary" class="form-control"
+                           value="@Model.AiMaxTokensSummary" min="256" max="4096" />
+                </div>
+                <div class="col-md-6 col-lg-3">
+                    <label class="form-label">الحد الأقصى للرموز (شرح)</label>
+                    <input type="number" name="AiMaxTokensExplanation" class="form-control"
+                           value="@Model.AiMaxTokensExplanation" min="512" max="8192" />
+                </div>
+                <div class="col-md-6 col-lg-3">
+                    <label class="form-label">درجة الحرارة</label>
+                    <input type="number" name="AiTemperature" class="form-control"
+                           value="@Model.AiTemperature" min="0" max="1" step="0.1" />
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @* إعدادات النظام العامة *@
+    <div class="card mb-4">
+        <div class="card-header">
+            <i class="bi bi-gear me-1"></i>إعدادات النظام العامة
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-6 col-lg-3">
+                    <label class="form-label">حجم الصفحة الافتراضي</label>
+                    <input type="number" name="DefaultPageSize" class="form-control"
+                           value="@Model.DefaultPageSize" min="5" max="100" />
+                </div>
+                <div class="col-md-6 col-lg-3">
+                    <label class="form-label">الحد الأقصى لحجم الملف (ميغابايت)</label>
+                    <input type="number" name="MaxFileUploadSizeMb" class="form-control"
+                           value="@Model.MaxFileUploadSizeMb" min="1" max="50" />
+                </div>
+                <div class="col-md-6 col-lg-3">
+                    <label class="form-label">مدة التخزين المؤقت (دقائق)</label>
+                    <input type="number" name="CacheExpirationMinutes" class="form-control"
+                           value="@Model.CacheExpirationMinutes" min="1" max="60" />
+                </div>
+                <div class="col-md-6 col-lg-3">
+                    <label class="form-label">وضع الصيانة</label>
+                    <div class="form-check form-switch mt-2">
+                        <input class="form-check-input" type="checkbox" name="MaintenanceMode"
+                               value="true" @(Model.MaintenanceMode ? "checked" : "") />
+                        <label class="form-check-label">تفعيل وضع الصيانة</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @* زر الحفظ *@
+    <div class="d-flex justify-content-end">
+        <button type="submit" class="btn btn-primary btn-lg px-5">
+            <i class="bi bi-check-lg me-1"></i>حفظ الإعدادات
+        </button>
+    </div>
+</form>

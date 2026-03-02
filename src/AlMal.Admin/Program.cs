@@ -44,6 +44,10 @@ try
         options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
     });
 
+    // Health checks
+    builder.Services.AddHealthChecks()
+        .AddSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")!);
+
     builder.Services.AddControllersWithViews();
 
     var app = builder.Build();
@@ -60,6 +64,8 @@ try
 
     app.UseAuthentication();
     app.UseAuthorization();
+
+    app.MapHealthChecks("/health");
 
     app.MapStaticAssets();
 

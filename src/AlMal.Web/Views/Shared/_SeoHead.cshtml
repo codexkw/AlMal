@@ -1,0 +1,69 @@
+@*
+    SEO Meta Tags Partial — Include in _Layout.cshtml <head>
+    Set ViewData keys from controllers:
+      - SeoTitle
+      - SeoDescription
+      - SeoKeywords
+      - SeoImage
+      - SeoUrl
+      - SeoType (default: website)
+      - SeoJsonLd (optional JSON-LD structured data string)
+*@
+@{
+    var seoTitle = ViewData["SeoTitle"]?.ToString() ?? "قناة المال - بورصة الكويت";
+    var seoDescription = ViewData["SeoDescription"]?.ToString()
+        ?? "قناة المال - منصتك الشاملة لبورصة الكويت. أسعار الأسهم، الأخبار الاقتصادية، التحليلات، المجتمع الاستثماري، والأكاديمية التعليمية.";
+    var seoKeywords = ViewData["SeoKeywords"]?.ToString()
+        ?? "بورصة الكويت, أسهم الكويت, سوق المال, تداول, استثمار, أخبار اقتصادية, تحليل فني, تحليل مالي";
+    var seoImage = ViewData["SeoImage"]?.ToString() ?? "/favicon.ico";
+    var seoUrl = ViewData["SeoUrl"]?.ToString() ?? "";
+    var seoType = ViewData["SeoType"]?.ToString() ?? "website";
+    var seoJsonLd = ViewData["SeoJsonLd"]?.ToString();
+}
+
+@* Arabic meta tags *@
+<meta name="description" content="@seoDescription" />
+<meta name="keywords" content="@seoKeywords" />
+<meta name="author" content="قناة المال" />
+<meta name="language" content="ar" />
+
+@* Open Graph tags *@
+<meta property="og:title" content="@seoTitle" />
+<meta property="og:description" content="@seoDescription" />
+<meta property="og:image" content="@seoImage" />
+<meta property="og:type" content="@seoType" />
+<meta property="og:url" content="@seoUrl" />
+<meta property="og:locale" content="ar_KW" />
+<meta property="og:site_name" content="قناة المال" />
+
+@* Twitter Card tags *@
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="@seoTitle" />
+<meta name="twitter:description" content="@seoDescription" />
+<meta name="twitter:image" content="@seoImage" />
+
+@* JSON-LD Structured Data *@
+@if (!string.IsNullOrEmpty(seoJsonLd))
+{
+    <script type="application/ld+json">
+        @Html.Raw(seoJsonLd)
+    </script>
+}
+else
+{
+    <script type="application/ld+json">
+    {
+        "@@context": "https://schema.org",
+        "@@type": "WebSite",
+        "name": "قناة المال",
+        "url": "https://almal.codexkw.co",
+        "description": "@Html.Raw(seoDescription.Replace("\"", "\\\""))",
+        "inLanguage": "ar",
+        "potentialAction": {
+            "@@type": "SearchAction",
+            "target": "https://almal.codexkw.co/Stock/{search_term_string}",
+            "query-input": "required name=search_term_string"
+        }
+    }
+    </script>
+}

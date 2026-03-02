@@ -246,7 +246,7 @@
         </div>
         <ul class="sidebar-nav">
             <li class="sidebar-nav-item">
-                <a href="/" class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "Home" ? "active" : "")">
+                <a href="/Dashboard" class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "AdminDashboard" ? "active" : "")">
                     <i class="bi bi-speedometer2"></i>لوحة التحكم
                 </a>
             </li>
@@ -286,17 +286,17 @@
                 </a>
             </li>
             <li class="sidebar-nav-item">
-                <a href="#">
+                <a href="/Alerts" class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "AdminAlerts" ? "active" : "")">
                     <i class="bi bi-bell"></i>التنبيهات
                 </a>
             </li>
             <li class="sidebar-nav-item">
-                <a href="#">
+                <a href="/Dashboard" class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "AdminDashboard" ? "active" : "")">
                     <i class="bi bi-bar-chart-line"></i>الإحصائيات
                 </a>
             </li>
             <li class="sidebar-nav-item">
-                <a href="#">
+                <a href="/Settings" class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "AdminSettings" ? "active" : "")">
                     <i class="bi bi-gear"></i>الإعدادات
                 </a>
             </li>

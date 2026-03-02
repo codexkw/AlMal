@@ -80,6 +80,10 @@ try
     // Services
     builder.Services.AddScoped<ITokenService, TokenService>();
 
+    // Health checks
+    builder.Services.AddHealthChecks()
+        .AddSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")!);
+
     builder.Services.AddControllers();
     builder.Services.AddOpenApi();
 
@@ -96,6 +100,7 @@ try
     app.UseAuthentication();
     app.UseAuthorization();
 
+    app.MapHealthChecks("/health");
     app.MapControllers();
 
     app.Run();
