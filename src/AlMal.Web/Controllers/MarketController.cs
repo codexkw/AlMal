@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using AlMal.Infrastructure.Data;
 using AlMal.Web.ViewModels.Market;
 using Microsoft.AspNetCore.Mvc;
@@ -169,6 +170,69 @@ public class MarketController : Controller
             .ToListAsync();
 
         return Json(results);
+    }
+
+    /// <summary>
+    /// GET /Market/Sectors — HTMX partial for sectors tab
+    /// </summary>
+    [HttpGet]
+    public async Task<IActionResult> Sectors()
+    {
+        var sectors = await _context.Sectors
+            .AsNoTracking()
+            .OrderBy(s => s.SortOrder)
+            .Select(s => new SectorViewModel
+            {
+                Id = s.Id,
+                NameAr = s.NameAr,
+                NameEn = s.NameEn,
+                IndexValue = s.IndexValue,
+                ChangePercent = s.ChangePercent,
+                StockCount = s.Stocks.Count(st => st.IsActive)
+            })
+            .ToListAsync();
+
+        return PartialView("_Sectors", sectors);
+    }
+
+    /// <summary>
+    /// GET /Market/Watchlist — HTMX partial for watchlist tab
+    /// </summary>
+    [HttpGet]
+    public async Task<IActionResult> Watchlist()
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId))
+        {
+            return Content("""
+                <div class="text-center py-5">
+                    <i class="bi bi-lock fs-1 text-muted"></i>
+                    <p class="text-muted mt-2">يرجى <a href="/Account/Login">تسجيل الدخول</a> لعرض قائمة المتابعة</p>
+                </div>
+            """, "text/html");
+        }
+
+        var watchlistStocks = await _context.Watchlists
+            .AsNoTracking()
+            .Include(w => w.Stock)
+                .ThenInclude(s => s.Sector)
+            .Where(w => w.UserId == userId)
+            .OrderByDescending(w => w.CreatedAt)
+            .Select(w => new StockViewModel
+            {
+                Id = w.Stock.Id,
+                Symbol = w.Stock.Symbol,
+                NameAr = w.Stock.NameAr,
+                SectorNameAr = w.Stock.Sector.NameAr,
+                SectorId = w.Stock.SectorId,
+                LastPrice = w.Stock.LastPrice,
+                DayChange = w.Stock.DayChange,
+                DayChangePercent = w.Stock.DayChangePercent,
+                IsInWatchlist = true
+            })
+            .ToListAsync();
+
+        return PartialView("_Watchlist", watchlistStocks);
     }
 
     private async Task<List<StockViewModel>> GetTopStocksAsync(

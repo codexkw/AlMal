@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using AlMal.Application.Interfaces;
 using AlMal.Domain.Entities;
 using AlMal.Web.ViewModels.Account;
@@ -66,6 +67,14 @@ public class AccountController : Controller
     }
 
     [HttpGet]
+    [Authorize]
+    public IActionResult Profile()
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        return RedirectToAction("Index", "Profile", new { id = userId });
+    }
+
+    [HttpGet]
     public IActionResult Register()
     {
         return View();
@@ -119,7 +128,7 @@ public class AccountController : Controller
         await _userManager.AddToRoleAsync(user, "User");
         await _signInManager.SignInAsync(user, isPersistent: false);
 
-        return RedirectToAction("Index", "Home");
+        return RedirectToAction("Index", "Market");
     }
 
     [HttpPost]
@@ -127,7 +136,7 @@ public class AccountController : Controller
     public async Task<IActionResult> Logout()
     {
         await _signInManager.SignOutAsync();
-        return RedirectToAction("Index", "Home");
+        return RedirectToAction("Index", "Market");
     }
 
     /// <summary>

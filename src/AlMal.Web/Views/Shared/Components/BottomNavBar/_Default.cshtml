@@ -2,7 +2,7 @@
 <nav class="bottom-nav d-md-none" aria-label="التنقل السفلي">
     <div class="d-flex justify-content-around align-items-center h-100">
         <!-- Market -->
-        <a href="/" class="bottom-nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Home" ? "active" : "")">
+        <a href="/" class="bottom-nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Market" ? "active" : "")">
             <i class="bi bi-graph-up-arrow"></i>
             <span>السوق</span>
         </a>
@@ -26,9 +26,19 @@
         </a>
 
         <!-- Profile -->
-        <a href="/Account/Login" class="bottom-nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Account" ? "active" : "")">
-            <i class="bi bi-person"></i>
-            <span>حسابي</span>
-        </a>
+        @if (User.Identity != null && User.Identity.IsAuthenticated)
+        {
+            <a href="/Account/Profile" class="bottom-nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Profile" ? "active" : "")">
+                <i class="bi bi-person-circle"></i>
+                <span>حسابي</span>
+            </a>
+        }
+        else
+        {
+            <a href="/Account/Login" class="bottom-nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Account" ? "active" : "")">
+                <i class="bi bi-person"></i>
+                <span>تسجيل الدخول</span>
+            </a>
+        }
     </div>
 </nav>

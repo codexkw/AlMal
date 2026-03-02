@@ -1,0 +1,57 @@
+@model List<AlMal.Web.ViewModels.Market.StockViewModel>
+
+@if (Model == null || Model.Count == 0)
+{
+    <div class="text-center py-5">
+        <i class="bi bi-star fs-1 text-muted"></i>
+        <p class="text-muted mt-2 mb-0">لم تضف أي أسهم إلى قائمة المتابعة بعد</p>
+        <p class="text-muted small">اضغط على نجمة السهم لإضافته</p>
+    </div>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead>
+                <tr class="text-muted small">
+                    <th class="px-3 py-2 border-0">الرمز</th>
+                    <th class="px-3 py-2 border-0">الشركة</th>
+                    <th class="px-3 py-2 border-0">القطاع</th>
+                    <th class="px-3 py-2 border-0 text-end">السعر</th>
+                    <th class="px-3 py-2 border-0 text-end">التغير</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var stock in Model)
+                {
+                    var changeClass = stock.DayChangePercent >= 0 ? "text-success" : "text-danger";
+                    var changeIcon = stock.DayChangePercent >= 0 ? "bi-caret-up-fill" : "bi-caret-down-fill";
+                    <tr>
+                        <td class="px-3 py-2">
+                            <a asp-controller="Stock" asp-action="Detail" asp-route-symbol="@stock.Symbol"
+                               class="fw-bold text-decoration-none" style="color: #4F0E5E;">
+                                @stock.Symbol
+                            </a>
+                        </td>
+                        <td class="px-3 py-2">@stock.NameAr</td>
+                        <td class="px-3 py-2 text-muted small">@stock.SectorNameAr</td>
+                        <td class="px-3 py-2 text-end fw-semibold" dir="ltr">
+                            @(stock.LastPrice?.ToString("N3") ?? "—")
+                        </td>
+                        <td class="px-3 py-2 text-end @changeClass" dir="ltr">
+                            @if (stock.DayChangePercent.HasValue)
+                            {
+                                <i class="bi @changeIcon"></i>
+                                <span>@stock.DayChangePercent?.ToString("N2")%</span>
+                            }
+                            else
+                            {
+                                <span class="text-muted">—</span>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
