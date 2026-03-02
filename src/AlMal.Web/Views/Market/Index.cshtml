@@ -257,28 +257,11 @@
             <div class="card border-0 shadow-sm mt-2">
                 <div class="card-header bg-transparent border-bottom py-3">
                     <div class="row align-items-center g-2">
-                        <div class="col-md-6">
+                        <div class="col">
                             <h5 class="mb-0 fw-bold" style="color: #4F0E5E;">
                                 <i class="bi bi-table me-2"></i>
                                 جميع الأسهم
                             </h5>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="input-group">
-                                <span class="input-group-text bg-light border-end-0">
-                                    <i class="bi bi-search text-muted"></i>
-                                </span>
-                                <input type="text"
-                                       id="stockSearchInput"
-                                       class="form-control border-start-0 bg-light"
-                                       placeholder="بحث بالرمز أو اسم الشركة..."
-                                       hx-get="@Url.Action("SearchStocks", "Market")"
-                                       hx-trigger="keyup changed delay:300ms"
-                                       hx-target="#stockTableBody"
-                                       hx-include="this"
-                                       name="query"
-                                       autocomplete="off" />
-                            </div>
                         </div>
                     </div>
                 </div>
@@ -562,83 +545,7 @@
     </div>
 </div>
 
-<!-- ======================================================================
-     5. QUICK SEARCH FAB — Floating button + modal
-     ====================================================================== -->
-<div x-data="{ searchOpen: false }" class="d-lg-none">
-
-    <!-- FAB Button -->
-    <button class="btn btn-lg rounded-circle shadow-lg position-fixed text-white d-flex align-items-center justify-content-center"
-            style="bottom: 5rem; left: 1.5rem; width: 56px; height: 56px; background-color: #FC4A04; z-index: 1055;"
-            @@click="searchOpen = true"
-            aria-label="بحث سريع">
-        <i class="bi bi-search fs-5"></i>
-    </button>
-
-    <!-- Search Modal Overlay (hidden by default, shown by Alpine) -->
-    <div x-show="searchOpen"
-         x-transition:enter="transition ease-out duration-200"
-         x-transition:enter-start="opacity-0"
-         x-transition:enter-end="opacity-100"
-         x-transition:leave="transition ease-in duration-150"
-         x-transition:leave-start="opacity-100"
-         x-transition:leave-end="opacity-0"
-         class="position-fixed top-0 start-0 w-100 h-100 d-flex flex-column"
-         style="z-index: 1060; background: rgba(0,0,0,0.5); display: none;"
-         @@click.self="searchOpen = false"
-         x-cloak>
-
-        <div class="bg-transparent w-100 shadow-lg" @@click.stop>
-            <div class="container-fluid py-3">
-                <div class="d-flex align-items-center gap-2">
-                    <button class="btn btn-link text-dark p-0"
-                            @@click="searchOpen = false">
-                        <i class="bi bi-arrow-right fs-4"></i>
-                    </button>
-                    <div class="input-group flex-grow-1">
-                        <span class="input-group-text bg-light border-end-0">
-                            <i class="bi bi-search text-muted"></i>
-                        </span>
-                        <input type="text"
-                               id="quickSearchInput"
-                               class="form-control border-start-0 bg-light"
-                               placeholder="بحث سريع عن سهم..."
-                               autocomplete="off"
-                               x-ref="quickSearchField"
-                               x-init="$watch('searchOpen', value => { if(value) setTimeout(() => $refs.quickSearchField.focus(), 100) })" />
-                    </div>
-                </div>
-                <!-- Quick Search Results -->
-                <div id="quickSearchResults" class="mt-2 overflow-auto" style="max-height: 60vh;"></div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Desktop Quick Search (in header area, visible on lg+) -->
-<div class="d-none d-lg-block">
-    <div class="modal fade" id="desktopSearchModal" tabindex="-1" aria-labelledby="desktopSearchLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content border-0 shadow-lg">
-                <div class="modal-header border-bottom py-3">
-                    <h5 class="modal-title fw-bold" id="desktopSearchLabel" style="color: #4F0E5E;">
-                        <i class="bi bi-search me-2"></i>
-                        بحث سريع
-                    </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
-                </div>
-                <div class="modal-body">
-                    <input type="text"
-                           id="desktopQuickSearchInput"
-                           class="form-control form-control-lg bg-light"
-                           placeholder="ابحث بالرمز أو اسم الشركة..."
-                           autocomplete="off" />
-                    <div id="desktopQuickSearchResults" class="mt-3 overflow-auto" style="max-height: 400px;"></div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
+<!-- Quick Search hidden for now -->
 
 <!-- ======================================================================
      STYLES
@@ -968,86 +875,7 @@
                 });
             });
 
-            // ----------------------------------------------------------------
-            // Quick Search AJAX Handler
-            // ----------------------------------------------------------------
-            function setupQuickSearch(inputId, resultsId) {
-                var input = document.getElementById(inputId);
-                var results = document.getElementById(resultsId);
-                if (!input || !results) return;
-
-                var debounceTimer;
-
-                input.addEventListener('input', function () {
-                    var query = this.value.trim();
-
-                    clearTimeout(debounceTimer);
-
-                    if (query.length < 1) {
-                        results.innerHTML = '';
-                        return;
-                    }
-
-                    debounceTimer = setTimeout(function () {
-                        fetch('@Url.Action("QuickSearch", "Market")?query=' + encodeURIComponent(query), {
-                            headers: {
-                                'X-Requested-With': 'XMLHttpRequest'
-                            }
-                        })
-                        .then(function (response) {
-                            if (!response.ok) throw new Error('Search request failed');
-                            return response.json();
-                        })
-                        .then(function (data) {
-                            if (!data || data.length === 0) {
-                                results.innerHTML =
-                                    '<div class="text-center text-muted py-4">' +
-                                    '<i class="bi bi-search display-6 d-block mb-2 opacity-25"></i>' +
-                                    'لا توجد نتائج لـ "' + escapeHtml(query) + '"' +
-                                    '</div>';
-                                return;
-                            }
-
-                            var html = '<div class="list-group list-group-flush">';
-                            data.forEach(function (stock) {
-                                var isPositive = stock.changePercent >= 0;
-                                var changeClass = isPositive ? 'text-success' : 'text-danger';
-                                var changeIcon = isPositive ? 'bi-caret-up-fill' : 'bi-caret-down-fill';
-
-                                html +=
-                                    '<a href="/stock/' + encodeURIComponent(stock.symbol) + '"' +
-                                    '   class="list-group-item list-group-item-action d-flex align-items-center justify-content-between py-2 px-3">' +
-                                    '  <div>' +
-                                    '    <span class="fw-bold" style="color: #4F0E5E;">' + escapeHtml(stock.symbol) + '</span>' +
-                                    '    <br/><span class="text-muted small">' + escapeHtml(stock.companyName) + '</span>' +
-                                    '  </div>' +
-                                    '  <div class="text-end">' +
-                                    '    <span class="fw-semibold">' + parseFloat(stock.price).toFixed(2) + '</span>' +
-                                    '    <br/><span class="' + changeClass + ' fw-bold small">' +
-                                    '      <i class="bi ' + changeIcon + '"></i> ' +
-                                    parseFloat(stock.changePercent).toFixed(2) + '%' +
-                                    '    </span>' +
-                                    '  </div>' +
-                                    '</a>';
-                            });
-                            html += '</div>';
-                            results.innerHTML = html;
-                        })
-                        .catch(function (error) {
-                            console.error('Quick search error:', error);
-                            results.innerHTML =
-                                '<div class="text-center text-danger py-3">' +
-                                '<i class="bi bi-exclamation-triangle me-1"></i>' +
-                                'حدث خطأ أثناء البحث' +
-                                '</div>';
-                        });
-                    }, 300);
-                });
-            }
-
-            // Initialize quick search for both mobile and desktop
-            setupQuickSearch('quickSearchInput', 'quickSearchResults');
-            setupQuickSearch('desktopQuickSearchInput', 'desktopQuickSearchResults');
+            // Quick search disabled for now
 
             // ----------------------------------------------------------------
             // Connection Status UI
@@ -1109,18 +937,6 @@
                         setTimeout(startConnection, 5000);
                     });
             }
-
-            // Keyboard shortcut: Ctrl+K / Cmd+K to open search
-            document.addEventListener('keydown', function (e) {
-                if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
-                    e.preventDefault();
-                    var modal = document.getElementById('desktopSearchModal');
-                    if (modal && window.innerWidth >= 992) {
-                        var bsModal = bootstrap.Modal.getOrCreateInstance(modal);
-                        bsModal.toggle();
-                    }
-                }
-            });
 
             // Start the SignalR connection
             startConnection();
