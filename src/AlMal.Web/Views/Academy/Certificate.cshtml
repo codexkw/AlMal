@@ -1,0 +1,104 @@
+@model AlMal.Web.ViewModels.Academy.CertificateViewModel
+@{
+    ViewData["Title"] = "شهادة إتمام - " + Model.CourseTitleAr;
+}
+
+@* ── Breadcrumb ── *@
+<nav aria-label="مسار التنقل" class="mb-3 d-print-none">
+    <ol class="breadcrumb small">
+        <li class="breadcrumb-item"><a asp-action="Index">الأكاديمية</a></li>
+        <li class="breadcrumb-item"><a asp-action="MyCertificates">شهاداتي</a></li>
+        <li class="breadcrumb-item active" aria-current="page">شهادة</li>
+    </ol>
+</nav>
+
+@* ── Print Button ── *@
+<div class="text-center mb-4 d-print-none">
+    <button type="button" class="btn btn-primary" onclick="window.print();">
+        <i class="bi bi-printer ms-1"></i>طباعة الشهادة
+    </button>
+    <a asp-action="MyCertificates" class="btn btn-outline-secondary me-2">
+        <i class="bi bi-arrow-right ms-1"></i>شهاداتي
+    </a>
+</div>
+
+@* ── Certificate Card ── *@
+<div class="row justify-content-center">
+    <div class="col-12 col-lg-8">
+        <div class="card border-0 shadow-lg mx-auto"
+             style="background: linear-gradient(135deg, #1a1a2e 0%, #2d1b4e 50%, #1a1a2e 100%);
+                    border: 3px solid var(--clr-accent) !important;
+                    max-width: 800px;">
+            <div class="card-body p-5 text-center">
+                @* Header Ornament *@
+                <div class="mb-3" style="color: var(--clr-accent);">
+                    <i class="bi bi-star-fill" style="font-size: 1.2rem;"></i>
+                    <i class="bi bi-star-fill mx-2" style="font-size: 1.5rem;"></i>
+                    <i class="bi bi-star-fill" style="font-size: 1.2rem;"></i>
+                </div>
+
+                @* Title *@
+                <h2 class="fw-light mb-1" style="color: var(--clr-accent); letter-spacing: 2px;">
+                    شهادة إتمام
+                </h2>
+                <p class="text-muted small mb-4">CERTIFICATE OF COMPLETION</p>
+
+                <hr style="border-color: var(--clr-accent); opacity: 0.3;" />
+
+                @* Recipient *@
+                <p class="text-muted mt-4 mb-1">تشهد قناة المال بأن</p>
+                <h1 class="display-5 fw-bold mb-1" style="color: var(--clr-accent);">
+                    @Model.UserName
+                </h1>
+
+                <p class="text-muted mt-3 mb-1">قد أتم بنجاح دورة</p>
+                <h3 class="fw-bold mb-4">@Model.CourseTitleAr</h3>
+
+                <hr style="border-color: var(--clr-accent); opacity: 0.3;" />
+
+                @* Details *@
+                <div class="row mt-4">
+                    <div class="col-6">
+                        <p class="text-muted small mb-1">تاريخ الإصدار</p>
+                        <p class="fw-semibold">@Model.CompletionDate.ToString("yyyy/MM/dd")</p>
+                    </div>
+                    <div class="col-6">
+                        <p class="text-muted small mb-1">رقم الشهادة</p>
+                        <p class="fw-semibold font-mono" style="font-family: var(--font-mono); direction: ltr;">
+                            @Model.CertificateNumber
+                        </p>
+                    </div>
+                </div>
+
+                @* Footer Ornament *@
+                <div class="mt-4">
+                    <i class="bi bi-award-fill" style="font-size: 2.5rem; color: var(--clr-accent);"></i>
+                </div>
+                <p class="text-muted small mt-2 mb-0">قناة المال - الأكاديمية</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Styles {
+    <style>
+        @@media print {
+            body {
+                background: white !important;
+                color: #212529 !important;
+            }
+            .almal-navbar,
+            .almal-footer,
+            .d-print-none,
+            .breadcrumb,
+            nav[aria-label] {
+                display: none !important;
+            }
+            .card {
+                border: 3px solid var(--clr-accent) !important;
+                box-shadow: none !important;
+                break-inside: avoid;
+            }
+        }
+    </style>
+}

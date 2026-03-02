@@ -1,0 +1,95 @@
+@model AlMal.Web.ViewModels.Academy.QuizResultViewModel
+@{
+    ViewData["Title"] = Model.Passed ? "نجحت!" : "لم تنجح";
+}
+
+@* ── Breadcrumb ── *@
+<nav aria-label="مسار التنقل" class="mb-3">
+    <ol class="breadcrumb small">
+        <li class="breadcrumb-item"><a asp-action="Index">الأكاديمية</a></li>
+        <li class="breadcrumb-item"><a asp-action="Course" asp-route-id="@Model.CourseId">@Model.CourseTitleAr</a></li>
+        <li class="breadcrumb-item active" aria-current="page">نتيجة الاختبار</li>
+    </ol>
+</nav>
+
+<div class="row justify-content-center">
+    <div class="col-12 col-md-8 col-lg-6">
+        <div class="card border-0 shadow text-center"
+             style="background: var(--card-bg); border: 1px solid var(--card-border) !important;">
+            <div class="card-body p-5">
+                @* Result Icon *@
+                @if (Model.Passed)
+                {
+                    <div class="mb-3" style="font-size: 5rem; color: var(--clr-positive);">
+                        <i class="bi bi-check-circle-fill"></i>
+                    </div>
+                    <h2 class="fw-bold mb-2" style="color: var(--clr-positive);">مبروك! لقد نجحت</h2>
+                }
+                else
+                {
+                    <div class="mb-3" style="font-size: 5rem; color: var(--clr-negative);">
+                        <i class="bi bi-x-circle-fill"></i>
+                    </div>
+                    <h2 class="fw-bold mb-2" style="color: var(--clr-negative);">لم تنجح في الاختبار</h2>
+                }
+
+                @* Score Display *@
+                <div class="my-4">
+                    <div class="display-3 fw-bold mb-1"
+                         style="color: @(Model.Passed ? "var(--clr-positive)" : "var(--clr-negative)");">
+                        @Model.Score%
+                    </div>
+                    <p class="text-muted">
+                        @Model.CorrectCount إجابة صحيحة من أصل @Model.TotalCount
+                    </p>
+                    <p class="text-muted small">
+                        نسبة النجاح المطلوبة: @Model.PassPercentage%
+                    </p>
+                </div>
+
+                @* Progress Bar *@
+                <div class="progress mx-auto mb-4" style="height: 12px; max-width: 300px;">
+                    <div class="progress-bar" role="progressbar"
+                         style="width: @(Model.Score)%; background: @(Model.Passed ? "var(--clr-positive)" : "var(--clr-negative)");">
+                    </div>
+                </div>
+
+                @* Course Completed Notification *@
+                @if (Model.CourseCompleted)
+                {
+                    <div class="alert text-center mb-3" style="background: rgba(34, 197, 94, 0.1); border: 1px solid var(--clr-positive); color: var(--clr-positive);">
+                        <i class="bi bi-trophy-fill ms-1"></i>
+                        تهانينا! لقد أكملت الدورة بالكامل وحصلت على شهادة.
+                    </div>
+                }
+
+                @* Action Buttons *@
+                <div class="d-flex flex-wrap gap-2 justify-content-center mt-4">
+                    @if (Model.Passed)
+                    {
+                        @if (Model.CertificateId.HasValue)
+                        {
+                            <a asp-action="Certificate" asp-route-id="@Model.CertificateId" class="btn btn-primary">
+                                <i class="bi bi-award ms-1"></i>عرض الشهادة
+                            </a>
+                        }
+
+                        <a asp-action="Course" asp-route-id="@Model.CourseId" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-right ms-1"></i>العودة للدورة
+                        </a>
+                    }
+                    else
+                    {
+                        <a asp-action="Quiz" asp-route-lessonId="@Model.LessonId" class="btn btn-primary">
+                            <i class="bi bi-arrow-repeat ms-1"></i>إعادة الاختبار
+                        </a>
+
+                        <a asp-action="Lesson" asp-route-id="@Model.LessonId" class="btn btn-outline-secondary">
+                            <i class="bi bi-book ms-1"></i>مراجعة الدرس
+                        </a>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,177 @@
+@model AlMal.Web.ViewModels.Academy.CourseDetailViewModel
+@{
+    ViewData["Title"] = Model.TitleAr;
+}
+
+@* ── Breadcrumb ── *@
+<nav aria-label="مسار التنقل" class="mb-3">
+    <ol class="breadcrumb small">
+        <li class="breadcrumb-item"><a asp-action="Index">الأكاديمية</a></li>
+        <li class="breadcrumb-item active" aria-current="page">@Model.TitleAr</li>
+    </ol>
+</nav>
+
+@* ── Course Header ── *@
+<section class="mb-4">
+    <div class="row g-4 align-items-start">
+        @* Thumbnail *@
+        <div class="col-12 col-md-4">
+            @if (!string.IsNullOrEmpty(Model.ThumbnailUrl))
+            {
+                <img src="@Model.ThumbnailUrl" class="img-fluid rounded shadow-sm" alt="@Model.TitleAr"
+                     style="width: 100%; max-height: 250px; object-fit: cover;" />
+            }
+            else
+            {
+                <div class="rounded d-flex align-items-center justify-content-center shadow-sm"
+                     style="height: 200px; background: linear-gradient(135deg, var(--clr-primary), var(--clr-accent));">
+                    <i class="bi bi-book text-white" style="font-size: 4rem;"></i>
+                </div>
+            }
+        </div>
+
+        @* Course Info *@
+        <div class="col-12 col-md-8">
+            <h1 class="h2 fw-bold mb-2">@Model.TitleAr</h1>
+
+            @if (!string.IsNullOrEmpty(Model.DescriptionAr))
+            {
+                <p class="text-muted mb-3">@Model.DescriptionAr</p>
+            }
+
+            @* Stats row *@
+            <div class="d-flex flex-wrap gap-3 mb-3">
+                <span class="badge bg-secondary fs-6 fw-normal">
+                    <i class="bi bi-collection ms-1"></i>@Model.LessonCount درس
+                </span>
+                @if (Model.TotalDurationMinutes > 0)
+                {
+                    <span class="badge bg-secondary fs-6 fw-normal">
+                        <i class="bi bi-clock ms-1"></i>@Model.TotalDurationMinutes دقيقة
+                    </span>
+                }
+                <span class="badge bg-secondary fs-6 fw-normal">
+                    <i class="bi bi-people ms-1"></i>@Model.EnrolledCount طالب
+                </span>
+                @if (Model.IsFree)
+                {
+                    <span class="badge bg-success fs-6 fw-normal">مجاني</span>
+                }
+                else
+                {
+                    <span class="badge bg-warning text-dark fs-6 fw-normal">@Model.Price?.ToString("N3") د.ك</span>
+                }
+            </div>
+
+            @* Enroll / Progress *@
+            @if (Model.IsEnrolled)
+            {
+                <div class="mb-3" style="max-width: 400px;">
+                    <div class="d-flex justify-content-between small mb-1">
+                        <span>التقدم في الدورة</span>
+                        <span class="fw-bold" style="color: var(--clr-positive);">@Model.ProgressPercent%</span>
+                    </div>
+                    <div class="progress" style="height: 10px;">
+                        <div class="progress-bar" role="progressbar"
+                             style="width: @(Model.ProgressPercent)%; background: var(--clr-positive);"
+                             aria-valuenow="@Model.ProgressPercent" aria-valuemin="0" aria-valuemax="100">
+                        </div>
+                    </div>
+                </div>
+
+                @if (Model.ProgressPercent >= 100)
+                {
+                    <span class="text-success fw-bold">
+                        <i class="bi bi-check-circle-fill ms-1"></i>تم إكمال الدورة
+                    </span>
+                }
+            }
+            else
+            {
+                <form asp-action="Enroll" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="courseId" value="@Model.Id" />
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <i class="bi bi-plus-circle ms-1"></i>التسجيل في الدورة
+                    </button>
+                </form>
+            }
+        </div>
+    </div>
+</section>
+
+@* ── Lessons List ── *@
+<section>
+    <h2 class="h4 fw-bold mb-3">
+        <i class="bi bi-list-ol ms-2"></i>محتوى الدورة
+    </h2>
+
+    @if (Model.Lessons.Count > 0)
+    {
+        <div class="list-group">
+            @foreach (var lesson in Model.Lessons)
+            {
+                var isAccessible = Model.IsEnrolled;
+                var iconClass = lesson.IsCompleted
+                    ? "bi-check-circle-fill text-success"
+                    : isAccessible
+                        ? "bi-play-circle"
+                        : "bi-lock-fill text-muted";
+
+                if (isAccessible)
+                {
+                    <a asp-action="Lesson" asp-route-id="@lesson.Id"
+                       class="list-group-item list-group-item-action d-flex align-items-center gap-3 py-3"
+                       style="background: var(--card-bg); border-color: var(--card-border); color: var(--body-color);">
+                        <span class="fs-5"><i class="bi @iconClass"></i></span>
+                        <div class="flex-grow-1">
+                            <div class="fw-semibold">@lesson.SortOrder. @lesson.TitleAr</div>
+                            <small class="text-muted">
+                                @if (lesson.DurationMinutes > 0)
+                                {
+                                    <span><i class="bi bi-clock ms-1"></i>@lesson.DurationMinutes د</span>
+                                }
+                                @if (lesson.HasQuiz)
+                                {
+                                    <span class="me-2"><i class="bi bi-question-circle ms-1"></i>يحتوي اختبار</span>
+                                }
+                            </small>
+                        </div>
+                        @if (lesson.IsCompleted)
+                        {
+                            <span class="badge bg-success">مكتمل</span>
+                        }
+                    </a>
+                }
+                else
+                {
+                    <div class="list-group-item d-flex align-items-center gap-3 py-3"
+                         style="background: var(--card-bg); border-color: var(--card-border); color: var(--body-color); opacity: 0.6;">
+                        <span class="fs-5"><i class="bi @iconClass"></i></span>
+                        <div class="flex-grow-1">
+                            <div class="fw-semibold">@lesson.SortOrder. @lesson.TitleAr</div>
+                            <small class="text-muted">
+                                @if (lesson.DurationMinutes > 0)
+                                {
+                                    <span><i class="bi bi-clock ms-1"></i>@lesson.DurationMinutes د</span>
+                                }
+                                @if (lesson.HasQuiz)
+                                {
+                                    <span class="me-2"><i class="bi bi-question-circle ms-1"></i>يحتوي اختبار</span>
+                                }
+                            </small>
+                        </div>
+                        <span class="badge bg-secondary">سجّل أولاً</span>
+                    </div>
+                }
+            }
+        </div>
+    }
+    else
+    {
+        <div class="text-center text-muted py-5">
+            <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+            لم تتم إضافة دروس بعد
+        </div>
+    }
+</section>
