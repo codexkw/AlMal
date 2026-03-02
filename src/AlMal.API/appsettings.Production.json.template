@@ -41,7 +41,7 @@
       "Microsoft.AspNetCore": "Warning"
     }
   },
-  "AllowedHosts": "api.almal.codexkw.co",
+  "AllowedHosts": "almal-api.codexkw.co",
   "Anthropic": {
     "ApiKey": "{{ANTHROPIC_API_KEY}}"
   },
@@ -49,6 +49,6 @@
     "PhoneNumberId": "{{WHATSAPP_PHONE_NUMBER_ID}}",
     "AccessToken": "{{WHATSAPP_ACCESS_TOKEN}}",
     "VerifyToken": "{{WHATSAPP_VERIFY_TOKEN}}",
-    "WebhookUrl": "https://api.almal.codexkw.co/api/whatsapp/webhook"
+    "WebhookUrl": "https://almal-api.codexkw.co/api/whatsapp/webhook"
   }
 }

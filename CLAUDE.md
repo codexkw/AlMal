@@ -739,8 +739,8 @@ cd AlMal
 | **Main Database** | `AlMal` |
 | **Hangfire Database** | `AlMal_Hangfire` (create separately) |
 | **Web (Public)** | `https://almal.codexkw.co` → IIS: `AlMal-Web` |
-| **Admin Panel** | `https://admin.almal.codexkw.co` → IIS: `AlMal-Admin` |
-| **REST API** | `https://api.almal.codexkw.co` → IIS: `AlMal-API` |
+| **Admin Panel** | `https://almal-admin.codexkw.co` → IIS: `AlMal-Admin` |
+| **REST API** | `https://almal-api.codexkw.co` → IIS: `AlMal-API` |
 
 ### "I need to start a new feature"
 

@@ -519,8 +519,8 @@
 
 - [✅] Create `.github/workflows/ci.yml` — build + test on every PR to main (2026-03-02)
 - [✅] Create `.github/workflows/deploy-web.yml` — deploy AlMal.Web to IIS `AlMal-Web` (almal.codexkw.co) on merge to main (2026-03-02)
-- [✅] Create `.github/workflows/deploy-admin.yml` — deploy AlMal.Admin to IIS `AlMal-Admin` (admin.almal.codexkw.co) on merge to main (2026-03-02)
-- [✅] Create `.github/workflows/deploy-api.yml` — deploy AlMal.API to IIS `AlMal-API` (api.almal.codexkw.co) on merge to main (2026-03-02)
+- [✅] Create `.github/workflows/deploy-admin.yml` — deploy AlMal.Admin to IIS `AlMal-Admin` (almal-admin.codexkw.co) on merge to main (2026-03-02)
+- [✅] Create `.github/workflows/deploy-api.yml` — deploy AlMal.API to IIS `AlMal-API` (almal-api.codexkw.co) on merge to main (2026-03-02)
 - [✅] Configure GitHub Secrets: SQL connection string, server credentials, IIS Web Deploy credentials (2026-03-02) — referenced via ${{ secrets.* }}
 - [✅] Configure Web Deploy publish profiles for each IIS site (2026-03-02)
 - [✅] Add EF Core migration step in deploy pipeline (auto-apply on deploy) (2026-03-02)

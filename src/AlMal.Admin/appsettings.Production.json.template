@@ -36,7 +36,7 @@
       "Microsoft.AspNetCore": "Warning"
     }
   },
-  "AllowedHosts": "admin.almal.codexkw.co",
+  "AllowedHosts": "almal-admin.codexkw.co",
   "Anthropic": {
     "ApiKey": "{{ANTHROPIC_API_KEY}}"
   }

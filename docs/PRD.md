@@ -1074,7 +1074,7 @@ All background jobs managed via Hangfire with SQL Server persistence.
 - EF Core parameterized queries prevent SQL injection
 - CSRF: anti-forgery tokens on all MVC forms
 - Content Security Policy headers
-- CORS: configured for allowed origins: `https://almal.codexkw.co`, `https://admin.almal.codexkw.co`, `https://api.almal.codexkw.co` + Flutter app origins
+- CORS: configured for allowed origins: `https://almal.codexkw.co`, `https://almal-admin.codexkw.co`, `https://almal-api.codexkw.co` + Flutter app origins
 
 ### 18.5 Data Protection
 
@@ -1106,8 +1106,8 @@ All background jobs managed via Hangfire with SQL Server persistence.
 | IIS Site | Domain | App Pool |
 |----------|--------|----------|
 | `AlMal-Web` | `almal.codexkw.co` | `AlMal-Web-Pool` (No Managed Code) |
-| `AlMal-Admin` | `admin.almal.codexkw.co` | `AlMal-Admin-Pool` (No Managed Code) |
-| `AlMal-API` | `api.almal.codexkw.co` | `AlMal-API-Pool` (No Managed Code) |
+| `AlMal-Admin` | `almal-admin.codexkw.co` | `AlMal-Admin-Pool` (No Managed Code) |
+| `AlMal-API` | `almal-api.codexkw.co` | `AlMal-API-Pool` (No Managed Code) |
 
 ### 19.3 IIS Configuration
 
@@ -1157,8 +1157,8 @@ Steps:
 Steps:
 1-3. Same as web
 4. dotnet publish src/AlMal.Admin -c Release -o ./publish-admin
-5. Web Deploy to IIS site AlMal-Admin (admin.almal.codexkw.co)
-6. Hit health check: GET https://admin.almal.codexkw.co/health
+5. Web Deploy to IIS site AlMal-Admin (almal-admin.codexkw.co)
+6. Hit health check: GET https://almal-admin.codexkw.co/health
 ```
 
 #### Pipeline 4: Deploy API — On merge to `main`
@@ -1170,8 +1170,8 @@ Steps:
 Steps:
 1-3. Same as web
 4. dotnet publish src/AlMal.API -c Release -o ./publish-api
-5. Web Deploy to IIS site AlMal-API (api.almal.codexkw.co)
-6. Hit health check: GET https://api.almal.codexkw.co/health
+5. Web Deploy to IIS site AlMal-API (almal-api.codexkw.co)
+6. Hit health check: GET https://almal-api.codexkw.co/health
 ```
 
 #### Required GitHub Secrets
