@@ -160,15 +160,73 @@
                 </div>
             </div>
 
-            @* ===== POSTS FEED PLACEHOLDER ===== *@
-            <div class="card border-0 shadow-sm">
-                <div class="card-body p-4 text-center">
-                    <div class="py-4">
-                        <i class="bi bi-chat-square-text fs-1 text-muted d-block mb-3" style="opacity: 0.5;"></i>
-                        <h5 class="fw-bold mb-2">منشورات المستخدم</h5>
-                        <p class="text-muted mb-0">قريباً - سيتم عرض منشورات المستخدم هنا</p>
+            @* ===== TABS: Posts / Portfolio ===== *@
+            <ul class="nav nav-tabs mb-3" role="tablist">
+                <li class="nav-item">
+                    <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#postsTab" type="button" role="tab">
+                        <i class="bi bi-chat-square-text ms-1"></i>المنشورات
+                    </button>
+                </li>
+                @if (Model.HasPublicPortfolio)
+                {
+                    <li class="nav-item">
+                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#portfolioTab" type="button" role="tab">
+                            <i class="bi bi-briefcase ms-1"></i>المحفظة
+                        </button>
+                    </li>
+                }
+            </ul>
+
+            <div class="tab-content">
+                @* Posts Tab *@
+                <div class="tab-pane fade show active" id="postsTab" role="tabpanel">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body p-4 text-center">
+                            <div class="py-4">
+                                <i class="bi bi-chat-square-text fs-1 text-muted d-block mb-3" style="opacity: 0.5;"></i>
+                                <h5 class="fw-bold mb-2">منشورات المستخدم</h5>
+                                <p class="text-muted mb-0">قريباً - سيتم عرض منشورات المستخدم هنا</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
+
+                @* Portfolio Tab *@
+                @if (Model.HasPublicPortfolio)
+                {
+                    <div class="tab-pane fade" id="portfolioTab" role="tabpanel">
+                        <div class="card border-0 shadow-sm">
+                            <div class="card-body p-4">
+                                <div class="row g-3 mb-3">
+                                    <div class="col-6">
+                                        <div class="text-muted small mb-1">قيمة المحفظة</div>
+                                        <div class="fw-bold fs-5">@Model.PortfolioValue?.ToString("N3") <span class="text-muted small">د.ك</span></div>
+                                    </div>
+                                    <div class="col-6">
+                                        @{
+                                            var profilePnlClass = (Model.PortfolioPnL ?? 0) >= 0 ? "text-success" : "text-danger";
+                                            var profilePnlIcon = (Model.PortfolioPnL ?? 0) >= 0 ? "bi-caret-up-fill" : "bi-caret-down-fill";
+                                        }
+                                        <div class="text-muted small mb-1">الربح / الخسارة</div>
+                                        <div class="fw-bold fs-5 @profilePnlClass">
+                                            <i class="bi @profilePnlIcon"></i>
+                                            @Model.PortfolioPnL?.ToString("N3") <span class="text-muted small">د.ك</span>
+                                            <span class="small">(@Model.PortfolioPnLPercent?.ToString("N2")%)</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="text-muted small mb-3">
+                                    <i class="bi bi-pie-chart ms-1"></i>
+                                    @Model.PortfolioHoldingsCount سهم في المحفظة
+                                </div>
+                                <a asp-controller="Portfolio" asp-action="Public" asp-route-userId="@Model.UserId"
+                                   class="btn btn-outline-primary btn-sm rounded-pill">
+                                    <i class="bi bi-eye ms-1"></i>عرض المحفظة الكاملة
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                }
             </div>
         </div>
     </div>

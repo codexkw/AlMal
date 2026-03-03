@@ -79,24 +79,32 @@ public class PortfolioApiController : ControllerBase
         if (userId == null)
             return Unauthorized(ApiResponse<PerformanceDto>.Fail("UNAUTHORIZED", "غير مصرح"));
 
-        var summary = await _simulation.GetPortfolioSummaryAsync(userId, ct);
-
         var portfolio = await _simulation.GetOrCreatePortfolioAsync(userId, ct);
         var trades = portfolio.Trades;
 
+        decimal holdingsValue = portfolio.Holdings
+            .Where(h => h.Quantity > 0)
+            .Sum(h => h.Quantity * (h.Stock.LastPrice ?? 0));
+
+        var totalPortfolioValue = portfolio.CashBalance + holdingsValue;
+        var pnl = totalPortfolioValue - portfolio.InitialCapital;
+        var pnlPercent = portfolio.InitialCapital > 0
+            ? (pnl / portfolio.InitialCapital) * 100
+            : 0;
+
         var performanceDto = new PerformanceDto
         {
-            InitialCapital = summary.InitialCapital,
-            CashBalance = summary.CashBalance,
-            HoldingsValue = summary.TotalPortfolioValue - summary.CashBalance,
-            TotalPortfolioValue = summary.TotalPortfolioValue,
-            PnL = summary.PnL,
-            PnLPercent = summary.PnLPercent,
+            InitialCapital = portfolio.InitialCapital,
+            CashBalance = portfolio.CashBalance,
+            HoldingsValue = holdingsValue,
+            TotalPortfolioValue = totalPortfolioValue,
+            PnL = pnl,
+            PnLPercent = pnlPercent,
             TotalTrades = trades.Count,
             BuyTrades = trades.Count(t => t.Type == TradeType.Buy),
             SellTrades = trades.Count(t => t.Type == TradeType.Sell),
             UniqueStocksTraded = trades.Select(t => t.StockId).Distinct().Count(),
-            CurrentHoldingsCount = summary.Holdings.Count
+            CurrentHoldingsCount = portfolio.Holdings.Count(h => h.Quantity > 0)
         };
 
         return Ok(ApiResponse<PerformanceDto>.Ok(performanceDto));

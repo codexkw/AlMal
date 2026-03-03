@@ -252,44 +252,18 @@ public class SimulationService : ISimulationService
             };
         }
 
-        // Compute running cash balance over time
-        var points = new List<PerformancePoint>();
-        var cashBalance = portfolio.InitialCapital;
-
-        // Starting point
-        points.Add(new PerformancePoint
+        var points = new List<PerformancePoint>
         {
-            Date = portfolio.CreatedAt,
-            PortfolioValue = portfolio.InitialCapital
-        });
+            new() { Date = portfolio.CreatedAt, PortfolioValue = portfolio.InitialCapital }
+        };
 
-        foreach (var trade in trades)
-        {
-            // For performance chart, we track total portfolio value at each trade point
-            // Cash changes: Buy decreases cash, Sell increases cash
-            // But total value (cash + holdings) stays roughly the same at trade time
-            // since we buy at market price. The value change comes from price movements between trades.
-            // For simplicity, we compute: cash after trade + total trade cost (value deployed)
-            if (trade.Type == TradeType.Buy)
-                cashBalance -= trade.TotalValue;
-            else
-                cashBalance += trade.TotalValue;
-
-            // At the moment of the trade, holdings value ~ what was paid
-            // This gives a rough approximation; real P&L chart requires historical stock prices
-            // We approximate total portfolio value as initial capital +/- realized gains
-            // A simple approach: each trade, total portfolio = cash + (initial - cash) = initial
-            // But realized gains from sells shift the balance.
-            // Best approximation without daily snapshots: track cash + cost basis of holdings
-        }
-
-        // Group trades by day and compute cumulative cash at end of each day
+        // Group trades by day and compute cumulative portfolio value (cash + cost basis)
         var dailyTrades = trades
             .GroupBy(t => t.ExecutedAt.Date)
             .OrderBy(g => g.Key);
 
-        cashBalance = portfolio.InitialCapital;
-        decimal totalInvested = 0; // cost basis of all current holdings
+        var cashBalance = portfolio.InitialCapital;
+        decimal totalInvested = 0;
 
         foreach (var day in dailyTrades)
         {

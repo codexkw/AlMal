@@ -63,6 +63,30 @@ public class ProfileController : Controller
             MemberSince = user.CreatedAt
         };
 
+        // Load simulation portfolio if public or own profile
+        var portfolio = await _context.SimulationPortfolios
+            .AsNoTracking()
+            .Include(p => p.Holdings)
+                .ThenInclude(h => h.Stock)
+            .FirstOrDefaultAsync(p => p.UserId == id && (p.IsPublic || isOwnProfile));
+
+        if (portfolio != null)
+        {
+            var holdingsValue = portfolio.Holdings
+                .Where(h => h.Quantity > 0)
+                .Sum(h => h.Quantity * (h.Stock.LastPrice ?? 0));
+            var totalValue = portfolio.CashBalance + holdingsValue;
+            var pnl = totalValue - portfolio.InitialCapital;
+
+            viewModel.HasPublicPortfolio = true;
+            viewModel.PortfolioValue = totalValue;
+            viewModel.PortfolioPnL = pnl;
+            viewModel.PortfolioPnLPercent = portfolio.InitialCapital > 0
+                ? (pnl / portfolio.InitialCapital) * 100
+                : 0;
+            viewModel.PortfolioHoldingsCount = portfolio.Holdings.Count(h => h.Quantity > 0);
+        }
+
         return View(viewModel);
     }
 
