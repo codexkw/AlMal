@@ -3,6 +3,7 @@ using AlMal.Domain.Entities;
 using AlMal.Application.Interfaces;
 using AlMal.Infrastructure.Data;
 using AlMal.Infrastructure.Identity;
+using AlMal.Infrastructure.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -88,6 +89,7 @@ try
 
     // Services
     builder.Services.AddScoped<ITokenService, TokenService>();
+    builder.Services.AddScoped<ISimulationService, SimulationService>();
 
     // Health checks
     builder.Services.AddHealthChecks()

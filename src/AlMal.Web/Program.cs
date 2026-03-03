@@ -4,6 +4,7 @@ using AlMal.Infrastructure.Data;
 using AlMal.Infrastructure.ExternalApis;
 using AlMal.Infrastructure.Identity;
 using AlMal.Infrastructure.Jobs;
+using AlMal.Infrastructure.Services;
 using Hangfire;
 using Hangfire.SqlServer;
 using Microsoft.AspNetCore.Identity;
@@ -114,6 +115,9 @@ try
 
     // AI service
     builder.Services.AddScoped<IAiAnalysisService, ClaudeAiService>();
+
+    // Simulation service
+    builder.Services.AddScoped<ISimulationService, SimulationService>();
 
     // WhatsApp service
     builder.Services.AddHttpClient<WhatsAppClient>();

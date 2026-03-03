@@ -429,18 +429,21 @@
 ### 5.4 Simulation Portfolio
 
 - [✅] Create `PortfolioController` in Web (2026-03-02)
-- [✅] Create `SimulationService` in Application (2026-03-02)
+- [✅] Create `ISimulationService` interface in Application/Interfaces (2026-03-03)
+- [✅] Create `SimulationService` implementation in Infrastructure/Services (2026-03-03)
 - [✅] Implement auto-create portfolio (100,000 KWD on first visit) (2026-03-02)
 - [✅] Build buy flow (stock search → quantity → estimate → confirm) (2026-03-02)
 - [✅] Build sell flow (holdings → quantity → estimate → confirm) (2026-03-02)
 - [✅] Implement trade validation (cash balance check, holding check) (2026-03-02)
 - [✅] Update SimulationHolding with average cost calculation (2026-03-02)
 - [✅] Build portfolio dashboard (total value, P&L, holdings table) (2026-03-02)
-- [✅] Build performance chart (portfolio value vs index over time) (2026-03-02)
-- [✅] Build sector allocation pie chart (2026-03-02)
+- [✅] Build performance chart (portfolio value vs index over time) (2026-03-03)
+- [✅] Build sector allocation pie chart (2026-03-03)
 - [✅] Implement portfolio reset (with confirmation) (2026-03-02)
 - [✅] Implement public/private portfolio toggle (2026-03-02)
-- [✅] Verify: Full buy/sell cycle works with correct P&L (2026-03-02)
+- [✅] Refactor controllers to use SimulationService (clean architecture) (2026-03-03)
+- [✅] Add sector allocations API endpoint (GET /api/v1/portfolio/sectors) (2026-03-03)
+- [ ] Verify: Full buy/sell cycle works with correct P&L (needs dotnet build)
 
 ### 5.5 Academy & Portfolio API Endpoints
 
@@ -632,4 +635,4 @@
 
 ---
 
-*Last updated: 2026-03-02 — Phase 2 in progress (2.1 scraper done)*
+*Last updated: 2026-03-03 — Phase 5 simulation feature reviewed & refactored with proper service layer, charts*

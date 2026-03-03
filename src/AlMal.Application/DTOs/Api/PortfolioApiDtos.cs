@@ -70,3 +70,12 @@ public class ExecuteTradeDto
     public int StockId { get; set; }
     public int Quantity { get; set; }
 }
+
+// ── Sector Allocation DTO ───────────────────────────────────────
+
+public class SectorAllocationApiDto
+{
+    public string SectorNameAr { get; set; } = null!;
+    public decimal MarketValue { get; set; }
+    public decimal WeightPercent { get; set; }
+}
