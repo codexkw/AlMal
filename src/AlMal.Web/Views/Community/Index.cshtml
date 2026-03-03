@@ -50,9 +50,39 @@
                                           style="resize: none; background-color: var(--hover-bg);"
                                           @@input="updateCounter()"></textarea>
                             </div>
+
+                            @* Media preview *@
+                            <div x-show="imagePreview" x-transition class="mb-2 position-relative">
+                                <img :src="imagePreview" class="img-fluid rounded" style="max-height: 200px; object-fit: cover;" />
+                                <button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0 m-1 rounded-circle"
+                                        @@click="removeImage()" style="width: 28px; height: 28px; padding: 0;">
+                                    <i class="bi bi-x"></i>
+                                </button>
+                            </div>
+                            <div x-show="videoName" x-transition class="mb-2 d-flex align-items-center gap-2 p-2 rounded" style="background-color: var(--hover-bg);">
+                                <i class="bi bi-camera-video text-primary"></i>
+                                <span class="small text-muted" x-text="videoName"></span>
+                                <button type="button" class="btn btn-sm btn-link text-danger p-0 ms-auto" @@click="removeVideo()">
+                                    <i class="bi bi-x-lg"></i>
+                                </button>
+                            </div>
+
                             <div class="d-flex align-items-center justify-content-between">
-                                <div class="small" :class="charCount > 950 ? 'text-danger' : 'text-muted'">
-                                    <span x-text="charCount">0</span> / 1000
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="small" :class="charCount > 950 ? 'text-danger' : 'text-muted'">
+                                        <span x-text="charCount">0</span> / 1000
+                                    </div>
+                                    @* Media upload buttons *@
+                                    <label class="btn btn-sm btn-link text-muted p-0 mb-0" title="إرفاق صورة" style="cursor: pointer;">
+                                        <i class="bi bi-image"></i>
+                                        <input type="file" x-ref="imageInput" accept=".jpg,.jpeg,.png,.gif,.webp"
+                                               @@change="onImageSelected($event)" class="d-none" />
+                                    </label>
+                                    <label class="btn btn-sm btn-link text-muted p-0 mb-0" title="إرفاق فيديو" style="cursor: pointer;">
+                                        <i class="bi bi-camera-video"></i>
+                                        <input type="file" x-ref="videoInput" accept=".mp4,.webm"
+                                               @@change="onVideoSelected($event)" class="d-none" />
+                                    </label>
                                 </div>
                                 <button type="submit"
                                         class="btn btn-primary btn-sm rounded-pill px-4"
@@ -205,9 +235,49 @@
                 charCount: 0,
                 posting: false,
                 errorMsg: '',
+                imageFile: null,
+                imagePreview: null,
+                videoFile: null,
+                videoName: '',
 
                 updateCounter() {
                     this.charCount = this.content.length;
+                },
+
+                onImageSelected(e) {
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    if (file.size > 5 * 1024 * 1024) {
+                        this.errorMsg = 'حجم الصورة يجب ألا يتجاوز 5 ميجابايت.';
+                        return;
+                    }
+                    this.imageFile = file;
+                    this.imagePreview = URL.createObjectURL(file);
+                    this.errorMsg = '';
+                },
+
+                removeImage() {
+                    this.imageFile = null;
+                    this.imagePreview = null;
+                    if (this.$refs.imageInput) this.$refs.imageInput.value = '';
+                },
+
+                onVideoSelected(e) {
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    if (file.size > 50 * 1024 * 1024) {
+                        this.errorMsg = 'حجم الفيديو يجب ألا يتجاوز 50 ميجابايت.';
+                        return;
+                    }
+                    this.videoFile = file;
+                    this.videoName = file.name;
+                    this.errorMsg = '';
+                },
+
+                removeVideo() {
+                    this.videoFile = null;
+                    this.videoName = '';
+                    if (this.$refs.videoInput) this.$refs.videoInput.value = '';
                 },
 
                 async submit() {
@@ -224,6 +294,8 @@
                         const formData = new FormData();
                         formData.append('Content', this.content);
                         formData.append('__RequestVerificationToken', getAntiForgeryToken());
+                        if (this.imageFile) formData.append('Image', this.imageFile);
+                        if (this.videoFile) formData.append('Video', this.videoFile);
 
                         const response = await fetch('/Community/Create', {
                             method: 'POST',
@@ -235,7 +307,8 @@
                             if (data.success) {
                                 this.content = '';
                                 this.charCount = 0;
-                                // Reload page to show new post
+                                this.removeImage();
+                                this.removeVideo();
                                 window.location.reload();
                             } else {
                                 this.errorMsg = data.error || 'حدث خطأ أثناء نشر المنشور.';
@@ -395,6 +468,33 @@
                         }
                     } catch (err) {
                         console.error('Error reporting post:', err);
+                    }
+                },
+
+                async repostPost() {
+                    if (!confirm('هل تريد إعادة نشر هذا المنشور؟')) return;
+
+                    try {
+                        const formData = new FormData();
+                        formData.append('OriginalPostId', this.postId);
+                        formData.append('__RequestVerificationToken', getAntiForgeryToken());
+
+                        const response = await fetch('/Community/Repost', {
+                            method: 'POST',
+                            body: formData
+                        });
+
+                        if (response.ok) {
+                            const data = await response.json();
+                            if (data.success) {
+                                this.showToast('تمت إعادة النشر بنجاح.');
+                                setTimeout(() => window.location.reload(), 1000);
+                            } else {
+                                this.showToast(data.error || 'حدث خطأ.');
+                            }
+                        }
+                    } catch (err) {
+                        console.error('Error reposting:', err);
                     }
                 },
 

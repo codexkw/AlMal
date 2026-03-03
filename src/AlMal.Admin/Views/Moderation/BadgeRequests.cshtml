@@ -1,0 +1,179 @@
+@model AlMal.Admin.ViewModels.BadgeRequestListViewModel
+@using AlMal.Domain.Enums
+@{
+    ViewData["Title"] = "طلبات شارات المحللين";
+}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+    <div>
+        <h5 class="fw-bold mb-1">
+            <i class="bi bi-patch-check me-1"></i>طلبات شارات المحللين
+        </h5>
+        <span class="text-muted">طلبات قيد الانتظار: @Model.TotalCount</span>
+    </div>
+    <a asp-action="Index" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-right me-1"></i>العودة للإشراف
+    </a>
+</div>
+
+@* Success/Error alerts *@
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        @TempData["Success"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        @TempData["Error"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+@if (Model.Requests.Count == 0)
+{
+    <div class="card">
+        <div class="card-body text-center text-muted py-5">
+            <i class="bi bi-patch-check fs-1 d-block mb-2"></i>
+            لا توجد طلبات شارات قيد الانتظار
+        </div>
+    </div>
+}
+else
+{
+    <div class="row g-3">
+        @foreach (var req in Model.Requests)
+        {
+            <div class="col-12 col-md-6">
+                <div class="card h-100">
+                    <div class="card-body">
+                        @* Applicant info *@
+                        <div class="d-flex align-items-center justify-content-between mb-3">
+                            <div>
+                                <h6 class="fw-bold mb-0">@req.DisplayName</h6>
+                                <span class="text-muted small">@(req.Email ?? "")</span>
+                            </div>
+                            <div>
+                                @switch (req.RequestedType)
+                                {
+                                    case UserType.ProAnalyst:
+                                        <span class="badge bg-warning text-dark"><i class="bi bi-star-fill me-1"></i>محلل محترف</span>
+                                        break;
+                                    case UserType.CertifiedAnalyst:
+                                        <span class="badge bg-primary"><i class="bi bi-patch-check-fill me-1"></i>محلل معتمد</span>
+                                        break;
+                                }
+                            </div>
+                        </div>
+
+                        @* Stats *@
+                        <div class="d-flex gap-3 mb-3 small text-muted">
+                            <span><i class="bi bi-file-post me-1"></i>@req.PostCount منشور</span>
+                            <span><i class="bi bi-people me-1"></i>@req.FollowersCount متابع</span>
+                            <span><i class="bi bi-calendar me-1"></i>@req.RequestedAt.ToString("yyyy-MM-dd")</span>
+                        </div>
+
+                        @* Current badge *@
+                        <div class="mb-2">
+                            <span class="text-muted small">الشارة الحالية: </span>
+                            @switch (req.CurrentType)
+                            {
+                                case UserType.Normal:
+                                    <span class="badge bg-secondary">عادي</span>
+                                    break;
+                                case UserType.ProAnalyst:
+                                    <span class="badge bg-info text-dark">محلل محترف</span>
+                                    break;
+                                case UserType.CertifiedAnalyst:
+                                    <span class="badge bg-primary">محلل معتمد</span>
+                                    break;
+                            }
+                        </div>
+
+                        @* Justification *@
+                        @if (!string.IsNullOrWhiteSpace(req.Justification))
+                        {
+                            <div class="mb-2">
+                                <span class="text-muted small d-block">المبرر:</span>
+                                <div class="p-2 rounded small" style="background-color: var(--hover-bg, #f8f9fa);">
+                                    @req.Justification
+                                </div>
+                            </div>
+                        }
+
+                        @* Certificate link *@
+                        @if (!string.IsNullOrWhiteSpace(req.CertificateUrl))
+                        {
+                            <div class="mb-3">
+                                <a href="@req.CertificateUrl" target="_blank" class="btn btn-sm btn-outline-secondary">
+                                    <i class="bi bi-file-earmark-pdf me-1"></i>عرض الشهادة
+                                </a>
+                            </div>
+                        }
+
+                        @* Actions *@
+                        <div class="d-flex gap-2 border-top pt-3">
+                            @if (User.IsInRole("SuperAdmin"))
+                            {
+                                <form asp-action="ApproveBadge" method="post" class="flex-grow-1">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="requestId" value="@req.Id" />
+                                    <button type="submit" class="btn btn-success btn-sm w-100">
+                                        <i class="bi bi-check-lg me-1"></i>موافقة
+                                    </button>
+                                </form>
+
+                                <div class="dropdown flex-grow-1">
+                                    <button class="btn btn-danger btn-sm w-100 dropdown-toggle" type="button"
+                                            data-bs-toggle="dropdown">
+                                        <i class="bi bi-x-lg me-1"></i>رفض
+                                    </button>
+                                    <div class="dropdown-menu p-3" style="min-width: 280px;">
+                                        <form asp-action="RejectBadge" method="post">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="requestId" value="@req.Id" />
+                                            <div class="mb-2">
+                                                <label class="form-label small">سبب الرفض (اختياري)</label>
+                                                <textarea name="rejectionReason" class="form-control form-control-sm"
+                                                          rows="2" maxlength="500"
+                                                          placeholder="اكتب سبب الرفض..."></textarea>
+                                            </div>
+                                            <button type="submit" class="btn btn-danger btn-sm w-100">تأكيد الرفض</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            }
+                            else
+                            {
+                                <span class="text-muted small">يتطلب صلاحية SuperAdmin</span>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    @* Pagination *@
+    @if (Model.TotalPages > 1)
+    {
+        <nav aria-label="ترقيم الصفحات" class="mt-4">
+            <ul class="pagination justify-content-center">
+                <li class="page-item @(Model.Page <= 1 ? "disabled" : "")">
+                    <a class="page-link" asp-action="BadgeRequests" asp-route-page="@(Model.Page - 1)">السابق</a>
+                </li>
+                @for (var i = 1; i <= Model.TotalPages; i++)
+                {
+                    <li class="page-item @(i == Model.Page ? "active" : "")">
+                        <a class="page-link" asp-action="BadgeRequests" asp-route-page="@i">@i</a>
+                    </li>
+                }
+                <li class="page-item @(Model.Page >= Model.TotalPages ? "disabled" : "")">
+                    <a class="page-link" asp-action="BadgeRequests" asp-route-page="@(Model.Page + 1)">التالي</a>
+                </li>
+            </ul>
+        </nav>
+    }
+}

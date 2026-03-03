@@ -99,6 +99,7 @@ try
     // Services
     builder.Services.AddScoped<ITokenService, TokenService>();
     builder.Services.AddScoped<ISimulationService, SimulationService>();
+    builder.Services.AddScoped<IPostService, PostService>();
 
     // Health checks
     builder.Services.AddHealthChecks()

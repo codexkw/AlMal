@@ -1,33 +1,26 @@
 using System.Security.Claims;
-using System.Text.RegularExpressions;
+using AlMal.Application.Interfaces;
 using AlMal.Domain.Entities;
 using AlMal.Infrastructure.Data;
 using AlMal.Web.ViewModels.Community;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace AlMal.Web.Controllers;
 
-public partial class CommunityController : Controller
+public class CommunityController : Controller
 {
-    private readonly UserManager<ApplicationUser> _userManager;
+    private readonly IPostService _postService;
     private readonly AlMalDbContext _context;
     private const int PageSize = 20;
-    private const int CommentsPerPage = 20;
     private const int RecentCommentsCount = 3;
 
-    public CommunityController(
-        UserManager<ApplicationUser> userManager,
-        AlMalDbContext context)
+    public CommunityController(IPostService postService, AlMalDbContext context)
     {
-        _userManager = userManager;
+        _postService = postService;
         _context = context;
     }
-
-    [GeneratedRegex(@"\$([A-Z]+)")]
-    private static partial Regex StockMentionRegex();
 
     /// <summary>
     /// GET /Community — Community feed page
@@ -46,90 +39,101 @@ public partial class CommunityController : Controller
             return RedirectToAction("Login", "Account", new { returnUrl = "/Community?tab=following" });
         }
 
-        IQueryable<Post> query = _context.Posts
+        // Use PostService for feed data
+        var feedResult = await _postService.GetFeedAsync(currentUserId, tab, page, PageSize);
+
+        // Build view models with recent comments (needs separate query for MVC partials)
+        var postIds = feedResult.Posts.Select(p => p.Id).ToList();
+
+        var recentComments = await _context.Comments
             .AsNoTracking()
-            .Where(p => !p.IsDeleted);
-
-        if (tab == "following" && currentUserId != null)
-        {
-            // Get IDs of users the current user follows
-            var followingIds = _context.UserFollows
-                .AsNoTracking()
-                .Where(f => f.FollowerId == currentUserId)
-                .Select(f => f.FollowingId);
-
-            query = query.Where(p => followingIds.Contains(p.UserId));
-        }
-
-        var totalCount = await query.CountAsync();
-        var totalPages = (int)Math.Ceiling(totalCount / (double)PageSize);
-
-        var posts = await query
-            .OrderByDescending(p => p.CreatedAt)
-            .Skip((page - 1) * PageSize)
-            .Take(PageSize)
-            .Select(p => new PostCardViewModel
+            .Where(c => postIds.Contains(c.PostId) && !c.IsDeleted && c.ParentCommentId == null)
+            .OrderByDescending(c => c.CreatedAt)
+            .Select(c => new
             {
-                Id = p.Id,
-                UserId = p.UserId,
-                UserDisplayName = p.User.DisplayName,
-                UserAvatarUrl = p.User.AvatarUrl,
-                UserType = p.User.UserType,
-                Content = p.Content,
-                ImageUrl = p.ImageUrl,
-                VideoUrl = p.VideoUrl,
-                LikeCount = p.LikeCount,
-                CommentCount = p.CommentCount,
-                RepostCount = p.RepostCount,
-                CreatedAt = p.CreatedAt,
-                StockMentions = p.PostStockMentions.Select(sm => new StockMentionTag
+                c.PostId,
+                Comment = new CommentViewModel
                 {
-                    Symbol = sm.Stock.Symbol,
-                    NameAr = sm.Stock.NameAr
-                }).ToList(),
-                RecentComments = p.Comments
-                    .Where(c => !c.IsDeleted && c.ParentCommentId == null)
-                    .OrderByDescending(c => c.CreatedAt)
-                    .Take(RecentCommentsCount)
-                    .Select(c => new CommentViewModel
-                    {
-                        Id = c.Id,
-                        UserId = c.UserId,
-                        UserDisplayName = c.User.DisplayName,
-                        UserAvatarUrl = c.User.AvatarUrl,
-                        UserType = c.User.UserType,
-                        Content = c.Content,
-                        CreatedAt = c.CreatedAt,
-                        ParentCommentId = c.ParentCommentId
-                    }).ToList()
+                    Id = c.Id,
+                    UserId = c.UserId,
+                    UserDisplayName = c.User.DisplayName,
+                    UserAvatarUrl = c.User.AvatarUrl,
+                    UserType = c.User.UserType,
+                    Content = c.Content,
+                    CreatedAt = c.CreatedAt,
+                    ParentCommentId = c.ParentCommentId
+                }
             })
             .ToListAsync();
 
-        // Check which posts current user has liked
-        if (currentUserId != null && posts.Count > 0)
-        {
-            var postIds = posts.Select(p => p.Id).ToList();
-            var likedPostIds = await _context.PostLikes
-                .AsNoTracking()
-                .Where(pl => pl.UserId == currentUserId && postIds.Contains(pl.PostId))
-                .Select(pl => pl.PostId)
-                .ToListAsync();
+        var commentsByPost = recentComments
+            .GroupBy(c => c.PostId)
+            .ToDictionary(
+                g => g.Key,
+                g => g.Take(RecentCommentsCount).Select(x => x.Comment).ToList());
 
-            foreach (var post in posts)
+        // Map stock mentions for display
+        var stockMentionData = await _context.PostStockMentions
+            .AsNoTracking()
+            .Where(m => postIds.Contains(m.PostId))
+            .Select(m => new { m.PostId, m.Stock.Symbol, m.Stock.NameAr })
+            .ToListAsync();
+
+        var stockMentionsByPost = stockMentionData
+            .GroupBy(m => m.PostId)
+            .ToDictionary(
+                g => g.Key,
+                g => g.Select(m => new StockMentionTag { Symbol = m.Symbol, NameAr = m.NameAr }).ToList());
+
+        var posts = feedResult.Posts.Select(p => new PostCardViewModel
+        {
+            Id = p.Id,
+            UserId = p.UserId,
+            UserDisplayName = p.UserDisplayName,
+            UserAvatarUrl = p.UserAvatarUrl,
+            UserType = Enum.TryParse<Domain.Enums.UserType>(p.UserType, out var ut) ? ut : Domain.Enums.UserType.Normal,
+            Content = p.Content,
+            ImageUrl = p.ImageUrl,
+            VideoUrl = p.VideoUrl,
+            LikeCount = p.LikeCount,
+            CommentCount = p.CommentCount,
+            RepostCount = p.RepostCount,
+            IsLikedByCurrentUser = p.IsLikedByCurrentUser,
+            CreatedAt = p.CreatedAt,
+            StockMentions = stockMentionsByPost.GetValueOrDefault(p.Id, []),
+            RecentComments = commentsByPost.GetValueOrDefault(p.Id, []),
+            IsRepost = p.IsRepost,
+            OriginalPostId = p.OriginalPostId,
+            OriginalPost = p.OriginalPost != null ? new PostCardViewModel
             {
-                post.IsLikedByCurrentUser = likedPostIds.Contains(post.Id);
-            }
-        }
+                Id = p.OriginalPost.Id,
+                UserId = p.OriginalPost.UserId,
+                UserDisplayName = p.OriginalPost.UserDisplayName,
+                UserAvatarUrl = p.OriginalPost.UserAvatarUrl,
+                UserType = Enum.TryParse<Domain.Enums.UserType>(p.OriginalPost.UserType, out var out2) ? out2 : Domain.Enums.UserType.Normal,
+                Content = p.OriginalPost.Content,
+                ImageUrl = p.OriginalPost.ImageUrl,
+                VideoUrl = p.OriginalPost.VideoUrl,
+                LikeCount = p.OriginalPost.LikeCount,
+                CommentCount = p.OriginalPost.CommentCount,
+                RepostCount = p.OriginalPost.RepostCount,
+                CreatedAt = p.OriginalPost.CreatedAt,
+                StockMentions = p.OriginalPost.StockMentions
+                    .Select(s => stockMentionData.FirstOrDefault(m => m.Symbol == s))
+                    .Where(m => m != null)
+                    .Select(m => new StockMentionTag { Symbol = m!.Symbol, NameAr = m.NameAr })
+                    .ToList()
+            } : null
+        }).ToList();
 
         var viewModel = new CommunityFeedViewModel
         {
             Posts = posts,
             ActiveTab = tab,
             Page = page,
-            TotalPages = totalPages
+            TotalPages = feedResult.TotalPages
         };
 
-        // Return partial for HTMX pagination requests
         if (Request.Headers.ContainsKey("HX-Request"))
         {
             return PartialView("_PostList", viewModel);
@@ -139,7 +143,7 @@ public partial class CommunityController : Controller
     }
 
     /// <summary>
-    /// POST /Community/Create — Create a new post
+    /// POST /Community/Create — Create a new post with optional media
     /// </summary>
     [HttpPost]
     [Authorize]
@@ -150,55 +154,60 @@ public partial class CommunityController : Controller
         if (currentUserId == null)
             return Json(new { success = false, error = "يجب تسجيل الدخول أولاً." });
 
-        if (string.IsNullOrWhiteSpace(request.Content))
-            return Json(new { success = false, error = "محتوى المنشور مطلوب." });
+        Stream? imageStream = null;
+        string? imageFileName = null;
+        Stream? videoStream = null;
+        string? videoFileName = null;
 
-        if (request.Content.Length > 1000)
-            return Json(new { success = false, error = "محتوى المنشور يجب ألا يتجاوز 1000 حرف." });
-
-        var post = new Post
+        if (request.Image != null && request.Image.Length > 0)
         {
-            UserId = currentUserId,
-            Content = request.Content.Trim(),
-            CreatedAt = DateTime.UtcNow
-        };
-
-        _context.Posts.Add(post);
-        await _context.SaveChangesAsync();
-
-        // Parse $SYMBOL tags from content
-        var matches = StockMentionRegex().Matches(request.Content);
-        if (matches.Count > 0)
-        {
-            var symbols = matches.Select(m => m.Groups[1].Value).Distinct().ToList();
-            var stocks = await _context.Stocks
-                .AsNoTracking()
-                .Where(s => symbols.Contains(s.Symbol) && s.IsActive)
-                .Select(s => new { s.Id, s.Symbol })
-                .ToListAsync();
-
-            foreach (var stock in stocks)
-            {
-                _context.PostStockMentions.Add(new PostStockMention
-                {
-                    PostId = post.Id,
-                    StockId = stock.Id
-                });
-            }
-
-            if (stocks.Count > 0)
-                await _context.SaveChangesAsync();
+            imageStream = request.Image.OpenReadStream();
+            imageFileName = request.Image.FileName;
         }
 
-        // Increment user's PostCount
-        var user = await _userManager.FindByIdAsync(currentUserId);
-        if (user != null)
+        if (request.Video != null && request.Video.Length > 0)
         {
-            user.PostCount++;
-            await _userManager.UpdateAsync(user);
+            videoStream = request.Video.OpenReadStream();
+            videoFileName = request.Video.FileName;
         }
 
-        return Json(new { success = true, postId = post.Id });
+        try
+        {
+            var result = await _postService.CreatePostAsync(
+                currentUserId, request.Content,
+                imageStream, imageFileName,
+                videoStream, videoFileName);
+
+            if (!result.Success)
+                return Json(new { success = false, error = result.ErrorMessage });
+
+            return Json(new { success = true, postId = result.PostId });
+        }
+        finally
+        {
+            imageStream?.Dispose();
+            videoStream?.Dispose();
+        }
+    }
+
+    /// <summary>
+    /// POST /Community/Repost — Repost an existing post
+    /// </summary>
+    [HttpPost]
+    [Authorize]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Repost([FromForm] RepostRequest request)
+    {
+        var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (currentUserId == null)
+            return Json(new { success = false, error = "يجب تسجيل الدخول أولاً." });
+
+        var result = await _postService.RepostAsync(currentUserId, request.OriginalPostId, request.Comment);
+
+        if (!result.Success)
+            return Json(new { success = false, error = result.ErrorMessage });
+
+        return Json(new { success = true, postId = result.PostId });
     }
 
     /// <summary>
@@ -213,37 +222,12 @@ public partial class CommunityController : Controller
         if (currentUserId == null)
             return Json(new { success = false, error = "يجب تسجيل الدخول أولاً." });
 
-        var post = await _context.Posts.FirstOrDefaultAsync(p => p.Id == postId && !p.IsDeleted);
-        if (post == null)
-            return Json(new { success = false, error = "المنشور غير موجود." });
+        var result = await _postService.ToggleLikeAsync(currentUserId, postId);
 
-        var existingLike = await _context.PostLikes
-            .FirstOrDefaultAsync(pl => pl.UserId == currentUserId && pl.PostId == postId);
+        if (!result.Success)
+            return Json(new { success = false, error = result.ErrorMessage });
 
-        bool liked;
-        if (existingLike != null)
-        {
-            // Unlike: remove like and decrement count
-            _context.PostLikes.Remove(existingLike);
-            post.LikeCount = Math.Max(0, post.LikeCount - 1);
-            liked = false;
-        }
-        else
-        {
-            // Like: add like and increment count
-            _context.PostLikes.Add(new PostLike
-            {
-                UserId = currentUserId,
-                PostId = postId,
-                CreatedAt = DateTime.UtcNow
-            });
-            post.LikeCount++;
-            liked = true;
-        }
-
-        await _context.SaveChangesAsync();
-
-        return Json(new { success = true, liked, likeCount = post.LikeCount });
+        return Json(new { success = true, liked = result.IsLiked, likeCount = result.LikeCount });
     }
 
     /// <summary>
@@ -258,53 +242,21 @@ public partial class CommunityController : Controller
         if (currentUserId == null)
             return Json(new { success = false, error = "يجب تسجيل الدخول أولاً." });
 
-        if (string.IsNullOrWhiteSpace(content))
-            return Json(new { success = false, error = "محتوى التعليق مطلوب." });
+        var result = await _postService.AddCommentAsync(currentUserId, postId, content, parentCommentId);
 
-        if (content.Length > 500)
-            return Json(new { success = false, error = "التعليق يجب ألا يتجاوز 500 حرف." });
-
-        var post = await _context.Posts.FirstOrDefaultAsync(p => p.Id == postId && !p.IsDeleted);
-        if (post == null)
-            return Json(new { success = false, error = "المنشور غير موجود." });
-
-        // Validate parent comment if provided
-        if (parentCommentId.HasValue)
-        {
-            var parentExists = await _context.Comments
-                .AsNoTracking()
-                .AnyAsync(c => c.Id == parentCommentId.Value && c.PostId == postId && !c.IsDeleted);
-
-            if (!parentExists)
-                return Json(new { success = false, error = "التعليق الأصلي غير موجود." });
-        }
-
-        var comment = new Comment
-        {
-            PostId = postId,
-            UserId = currentUserId,
-            Content = content.Trim(),
-            ParentCommentId = parentCommentId,
-            CreatedAt = DateTime.UtcNow
-        };
-
-        _context.Comments.Add(comment);
-        post.CommentCount++;
-        await _context.SaveChangesAsync();
-
-        // Load user info for the partial view
-        var user = await _userManager.FindByIdAsync(currentUserId);
+        if (!result.Success)
+            return Json(new { success = false, error = result.ErrorMessage });
 
         var commentVm = new CommentViewModel
         {
-            Id = comment.Id,
-            UserId = currentUserId,
-            UserDisplayName = user?.DisplayName ?? "",
-            UserAvatarUrl = user?.AvatarUrl,
-            UserType = user?.UserType ?? Domain.Enums.UserType.Normal,
-            Content = comment.Content,
-            CreatedAt = comment.CreatedAt,
-            ParentCommentId = comment.ParentCommentId
+            Id = result.Comment!.Id,
+            UserId = result.Comment.UserId,
+            UserDisplayName = result.Comment.UserDisplayName,
+            UserAvatarUrl = result.Comment.UserAvatarUrl,
+            UserType = Enum.TryParse<Domain.Enums.UserType>(result.Comment.UserType, out var ut) ? ut : Domain.Enums.UserType.Normal,
+            Content = result.Comment.Content,
+            CreatedAt = result.Comment.CreatedAt,
+            ParentCommentId = result.Comment.ParentCommentId
         };
 
         return PartialView("_Comment", commentVm);
@@ -322,26 +274,10 @@ public partial class CommunityController : Controller
         if (currentUserId == null)
             return Json(new { success = false, error = "يجب تسجيل الدخول أولاً." });
 
-        var post = await _context.Posts.FirstOrDefaultAsync(p => p.Id == postId && !p.IsDeleted);
-        if (post == null)
-            return Json(new { success = false, error = "المنشور غير موجود." });
+        var result = await _postService.DeletePostAsync(currentUserId, postId);
 
-        // Only the post owner can delete
-        if (post.UserId != currentUserId)
-            return Json(new { success = false, error = "لا يمكنك حذف هذا المنشور." });
-
-        post.IsDeleted = true;
-        post.UpdatedAt = DateTime.UtcNow;
-
-        // Decrement user's PostCount
-        var user = await _userManager.FindByIdAsync(currentUserId);
-        if (user != null)
-        {
-            user.PostCount = Math.Max(0, user.PostCount - 1);
-            await _userManager.UpdateAsync(user);
-        }
-
-        await _context.SaveChangesAsync();
+        if (!result.Success)
+            return Json(new { success = false, error = result.ErrorMessage });
 
         return Json(new { success = true });
     }
@@ -352,19 +288,16 @@ public partial class CommunityController : Controller
     [HttpPost]
     [Authorize]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Report([FromForm] long postId)
+    public async Task<IActionResult> Report([FromForm] long postId, [FromForm] string? reason)
     {
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (currentUserId == null)
             return Json(new { success = false, error = "يجب تسجيل الدخول أولاً." });
 
-        var post = await _context.Posts.FirstOrDefaultAsync(p => p.Id == postId && !p.IsDeleted);
-        if (post == null)
-            return Json(new { success = false, error = "المنشور غير موجود." });
+        var result = await _postService.ReportPostAsync(currentUserId, postId, reason);
 
-        post.IsFlagged = true;
-        post.UpdatedAt = DateTime.UtcNow;
-        await _context.SaveChangesAsync();
+        if (!result.Success)
+            return Json(new { success = false, error = result.ErrorMessage });
 
         return Json(new { success = true });
     }
@@ -375,58 +308,37 @@ public partial class CommunityController : Controller
     [HttpGet("Community/Comments/{postId:long}")]
     public async Task<IActionResult> PostComments(long postId, int page = 1)
     {
-        if (page < 1) page = 1;
+        var result = await _postService.GetCommentsAsync(postId, page, PageSize);
 
-        var postExists = await _context.Posts
-            .AsNoTracking()
-            .AnyAsync(p => p.Id == postId && !p.IsDeleted);
-
-        if (!postExists)
+        if (!result.Success)
             return NotFound();
 
-        var totalCount = await _context.Comments
-            .AsNoTracking()
-            .Where(c => c.PostId == postId && !c.IsDeleted && c.ParentCommentId == null)
-            .CountAsync();
-
-        var totalPages = (int)Math.Ceiling(totalCount / (double)CommentsPerPage);
-
-        var comments = await _context.Comments
-            .AsNoTracking()
-            .Where(c => c.PostId == postId && !c.IsDeleted && c.ParentCommentId == null)
-            .OrderByDescending(c => c.CreatedAt)
-            .Skip((page - 1) * CommentsPerPage)
-            .Take(CommentsPerPage)
-            .Select(c => new CommentViewModel
+        var comments = result.Comments.Select(c => new CommentViewModel
+        {
+            Id = c.Id,
+            UserId = c.UserId,
+            UserDisplayName = c.UserDisplayName,
+            UserAvatarUrl = c.UserAvatarUrl,
+            UserType = Enum.TryParse<Domain.Enums.UserType>(c.UserType, out var ut) ? ut : Domain.Enums.UserType.Normal,
+            Content = c.Content,
+            CreatedAt = c.CreatedAt,
+            ParentCommentId = c.ParentCommentId,
+            Replies = c.Replies.Select(r => new CommentViewModel
             {
-                Id = c.Id,
-                UserId = c.UserId,
-                UserDisplayName = c.User.DisplayName,
-                UserAvatarUrl = c.User.AvatarUrl,
-                UserType = c.User.UserType,
-                Content = c.Content,
-                CreatedAt = c.CreatedAt,
-                ParentCommentId = c.ParentCommentId,
-                Replies = c.Replies
-                    .Where(r => !r.IsDeleted)
-                    .OrderBy(r => r.CreatedAt)
-                    .Select(r => new CommentViewModel
-                    {
-                        Id = r.Id,
-                        UserId = r.UserId,
-                        UserDisplayName = r.User.DisplayName,
-                        UserAvatarUrl = r.User.AvatarUrl,
-                        UserType = r.User.UserType,
-                        Content = r.Content,
-                        CreatedAt = r.CreatedAt,
-                        ParentCommentId = r.ParentCommentId
-                    }).ToList()
-            })
-            .ToListAsync();
+                Id = r.Id,
+                UserId = r.UserId,
+                UserDisplayName = r.UserDisplayName,
+                UserAvatarUrl = r.UserAvatarUrl,
+                UserType = Enum.TryParse<Domain.Enums.UserType>(r.UserType, out var rut) ? rut : Domain.Enums.UserType.Normal,
+                Content = r.Content,
+                CreatedAt = r.CreatedAt,
+                ParentCommentId = r.ParentCommentId
+            }).ToList()
+        }).ToList();
 
         ViewBag.PostId = postId;
-        ViewBag.Page = page;
-        ViewBag.TotalPages = totalPages;
+        ViewBag.Page = result.Page;
+        ViewBag.TotalPages = result.TotalPages;
 
         return PartialView("_CommentList", comments);
     }

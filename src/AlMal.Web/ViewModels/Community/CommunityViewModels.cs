@@ -27,6 +27,11 @@ public class PostCardViewModel
     public DateTime CreatedAt { get; set; }
     public List<StockMentionTag> StockMentions { get; set; } = [];
     public List<CommentViewModel> RecentComments { get; set; } = [];
+
+    // Repost
+    public bool IsRepost { get; set; }
+    public long? OriginalPostId { get; set; }
+    public PostCardViewModel? OriginalPost { get; set; }
 }
 
 public class StockMentionTag
@@ -51,4 +56,12 @@ public class CommentViewModel
 public class CreatePostRequest
 {
     public string Content { get; set; } = null!;
+    public IFormFile? Image { get; set; }
+    public IFormFile? Video { get; set; }
+}
+
+public class RepostRequest
+{
+    public long OriginalPostId { get; set; }
+    public string? Comment { get; set; }
 }

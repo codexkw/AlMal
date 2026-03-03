@@ -8,10 +8,31 @@
     <div>
         <span class="text-muted">إجمالي المنشورات المبلّغ عنها: @Model.TotalCount</span>
     </div>
-    <a asp-action="Users" class="btn btn-outline-primary">
-        <i class="bi bi-people me-1"></i>إدارة المستخدمين
-    </a>
+    <div class="d-flex gap-2">
+        <a asp-action="BadgeRequests" class="btn btn-outline-info btn-sm">
+            <i class="bi bi-patch-check me-1"></i>طلبات الشارات
+        </a>
+        <a asp-action="Users" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-people me-1"></i>إدارة المستخدمين
+        </a>
+    </div>
 </div>
+
+@* Success/Error alerts *@
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        @TempData["Success"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        @TempData["Error"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
 
 @* جدول المنشورات المبلّغ عنها *@
 <div class="card">
@@ -22,17 +43,18 @@
                     <tr>
                         <th style="width: 5%;">#</th>
                         <th style="width: 10%;">النوع</th>
-                        <th style="width: 35%;">المحتوى</th>
-                        <th style="width: 15%;">المستخدم</th>
-                        <th style="width: 15%;">التاريخ</th>
-                        <th style="width: 20%;">الإجراءات</th>
+                        <th style="width: 25%;">المحتوى</th>
+                        <th style="width: 12%;">المستخدم</th>
+                        <th style="width: 13%;">سبب البلاغ</th>
+                        <th style="width: 12%;">التاريخ</th>
+                        <th style="width: 23%;">الإجراءات</th>
                     </tr>
                 </thead>
                 <tbody>
                     @if (Model.Items.Count == 0)
                     {
                         <tr>
-                            <td colspan="6" class="text-center text-muted py-4">
+                            <td colspan="7" class="text-center text-muted py-4">
                                 <i class="bi bi-check-circle fs-3 d-block mb-2"></i>
                                 لا توجد منشورات مبلّغ عنها
                             </td>
@@ -44,23 +66,44 @@
                             <td>@item.Id</td>
                             <td>
                                 <span class="badge bg-warning text-dark">@item.Type</span>
+                                @if (!string.IsNullOrWhiteSpace(item.ImageUrl))
+                                {
+                                    <i class="bi bi-image text-muted ms-1" title="يحتوي صورة"></i>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(item.VideoUrl))
+                                {
+                                    <i class="bi bi-camera-video text-muted ms-1" title="يحتوي فيديو"></i>
+                                }
                             </td>
                             <td>
-                                <div style="max-width: 400px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                <div style="max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                                     @item.Content
                                 </div>
                             </td>
-                            <td>@item.UserDisplayName</td>
+                            <td>
+                                <span class="small">@item.UserDisplayName</span>
+                            </td>
+                            <td>
+                                <span class="small text-muted">@(item.ReportReason ?? "—")</span>
+                                @if (!string.IsNullOrEmpty(item.ReportedByDisplayName))
+                                {
+                                    <div class="small text-muted">بواسطة: @item.ReportedByDisplayName</div>
+                                }
+                            </td>
                             <td>
                                 <span class="text-muted small">@item.CreatedAt.ToString("yyyy-MM-dd HH:mm")</span>
                             </td>
                             <td>
                                 <div class="d-flex gap-1">
+                                    <a asp-action="Review" asp-route-id="@item.Id"
+                                       class="btn btn-sm btn-outline-info" title="مراجعة">
+                                        <i class="bi bi-eye me-1"></i>مراجعة
+                                    </a>
                                     <form asp-action="Approve" method="post" class="d-inline">
                                         @Html.AntiForgeryToken()
                                         <input type="hidden" name="postId" value="@item.Id" />
                                         <button type="submit" class="btn btn-sm btn-outline-success" title="موافقة">
-                                            <i class="bi bi-check-lg me-1"></i>موافقة
+                                            <i class="bi bi-check-lg"></i>
                                         </button>
                                     </form>
                                     <form asp-action="Delete" method="post" class="d-inline"
@@ -68,7 +111,7 @@
                                         @Html.AntiForgeryToken()
                                         <input type="hidden" name="postId" value="@item.Id" />
                                         <button type="submit" class="btn btn-sm btn-outline-danger" title="حذف">
-                                            <i class="bi bi-trash me-1"></i>حذف
+                                            <i class="bi bi-trash"></i>
                                         </button>
                                     </form>
                                 </div>
