@@ -140,6 +140,56 @@
         </div>
     </div>
 
+    @* ===== CHARTS ROW: Performance + Sector Allocation ===== *@
+    <div class="row g-3 mb-4">
+        @* Performance Chart *@
+        <div class="col-12 col-lg-8">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-transparent">
+                    <h5 class="mb-0 fw-bold">
+                        <i class="bi bi-graph-up text-primary ms-2"></i>أداء المحفظة
+                    </h5>
+                </div>
+                <div class="card-body">
+                    @if (Model.PerformanceHistory.Count > 1)
+                    {
+                        <canvas id="performanceChart" style="width: 100%; height: 250px;"></canvas>
+                    }
+                    else
+                    {
+                        <div class="text-center py-5 text-muted">
+                            <i class="bi bi-graph-up display-4 d-block mb-3"></i>
+                            <p class="mb-0">ابدأ التداول لمشاهدة أداء المحفظة</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+        @* Sector Allocation Pie Chart *@
+        <div class="col-12 col-lg-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-transparent">
+                    <h5 class="mb-0 fw-bold">
+                        <i class="bi bi-pie-chart text-primary ms-2"></i>توزيع القطاعات
+                    </h5>
+                </div>
+                <div class="card-body d-flex align-items-center justify-content-center">
+                    @if (Model.SectorAllocations.Count > 0)
+                    {
+                        <canvas id="sectorChart" style="width: 100%; max-height: 250px;"></canvas>
+                    }
+                    else
+                    {
+                        <div class="text-center text-muted">
+                            <i class="bi bi-pie-chart display-4 d-block mb-3"></i>
+                            <p class="mb-0">لا توجد مقتنيات لعرض التوزيع</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
     @* ===== HOLDINGS TABLE ===== *@
     <div class="card border-0 shadow-sm mb-4">
         <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
@@ -383,3 +433,122 @@
     <i class="bi bi-info-circle ms-1"></i>
     هذه محفظة افتراضية للتعلم والتدريب فقط. جميع الصفقات وهمية ولا تمثل تداولاً حقيقياً.
 </div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // ── Performance Chart ──────────────────────────────────
+            @if (Model.PerformanceHistory.Count > 1)
+            {
+                <text>
+                const perfCtx = document.getElementById('performanceChart');
+                if (perfCtx) {
+                    new Chart(perfCtx, {
+                        type: 'line',
+                        data: {
+                            labels: [@Html.Raw(string.Join(",", Model.PerformanceHistory.Select(p => $"'{p.Date}'")))],
+                            datasets: [{
+                                label: 'قيمة المحفظة (د.ك)',
+                                data: [@Html.Raw(string.Join(",", Model.PerformanceHistory.Select(p => p.Value.ToString("F3"))))],
+                                borderColor: '#4F0E5E',
+                                backgroundColor: 'rgba(79, 14, 94, 0.1)',
+                                fill: true,
+                                tension: 0.3,
+                                pointRadius: 3,
+                                pointBackgroundColor: '#4F0E5E',
+                                borderWidth: 2
+                            }, {
+                                label: 'رأس المال الأولي (د.ك)',
+                                data: Array(@Model.PerformanceHistory.Count).fill(@Model.InitialCapital.ToString("F3")),
+                                borderColor: '#FC4A04',
+                                borderDash: [5, 5],
+                                borderWidth: 1.5,
+                                pointRadius: 0,
+                                fill: false
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    position: 'bottom',
+                                    labels: { font: { family: 'IBM Plex Sans Arabic' } }
+                                },
+                                tooltip: {
+                                    callbacks: {
+                                        label: function(context) {
+                                            return context.dataset.label + ': ' + parseFloat(context.raw).toFixed(3) + ' د.ك';
+                                        }
+                                    }
+                                }
+                            },
+                            scales: {
+                                x: {
+                                    ticks: { font: { family: 'IBM Plex Sans Arabic', size: 10 } },
+                                    grid: { display: false }
+                                },
+                                y: {
+                                    ticks: {
+                                        font: { family: 'IBM Plex Sans Arabic', size: 10 },
+                                        callback: function(value) { return value.toLocaleString() + ' د.ك'; }
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+                </text>
+            }
+
+            // ── Sector Allocation Pie Chart ────────────────────────
+            @if (Model.SectorAllocations.Count > 0)
+            {
+                <text>
+                const sectorCtx = document.getElementById('sectorChart');
+                if (sectorCtx) {
+                    const sectorColors = [
+                        '#4F0E5E', '#FC4A04', '#22C55E', '#3B82F6', '#F59E0B',
+                        '#8B5CF6', '#EC4899', '#06B6D4', '#84CC16', '#F97316',
+                        '#6366F1', '#14B8A6', '#E11D48', '#A855F7'
+                    ];
+                    new Chart(sectorCtx, {
+                        type: 'doughnut',
+                        data: {
+                            labels: [@Html.Raw(string.Join(",", Model.SectorAllocations.Select(s => $"'{s.SectorNameAr}'")))],
+                            datasets: [{
+                                data: [@Html.Raw(string.Join(",", Model.SectorAllocations.Select(s => s.WeightPercent.ToString("F2"))))],
+                                backgroundColor: sectorColors.slice(0, @Model.SectorAllocations.Count),
+                                borderWidth: 2,
+                                borderColor: '#fff'
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            cutout: '55%',
+                            plugins: {
+                                legend: {
+                                    position: 'bottom',
+                                    labels: {
+                                        font: { family: 'IBM Plex Sans Arabic', size: 11 },
+                                        padding: 12
+                                    }
+                                },
+                                tooltip: {
+                                    callbacks: {
+                                        label: function(context) {
+                                            return context.label + ': ' + parseFloat(context.raw).toFixed(1) + '%';
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+                </text>
+            }
+        });
+    </script>
+}

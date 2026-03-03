@@ -98,6 +98,7 @@ try
 
     // Services
     builder.Services.AddScoped<ITokenService, TokenService>();
+    builder.Services.AddScoped<ISimulationService, SimulationService>();
 
     // Health checks
     builder.Services.AddHealthChecks()

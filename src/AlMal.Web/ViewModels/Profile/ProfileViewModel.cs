@@ -16,6 +16,13 @@ public class ProfileViewModel
     public bool IsOwnProfile { get; set; }
     public bool IsFollowing { get; set; }
     public DateTime MemberSince { get; set; }
+
+    // Simulation Portfolio (shown if public or own profile)
+    public bool HasPublicPortfolio { get; set; }
+    public decimal? PortfolioValue { get; set; }
+    public decimal? PortfolioPnL { get; set; }
+    public decimal? PortfolioPnLPercent { get; set; }
+    public int? PortfolioHoldingsCount { get; set; }
 }
 
 public class EditProfileViewModel

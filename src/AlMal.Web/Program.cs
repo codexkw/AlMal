@@ -117,6 +117,9 @@ try
     // AI service
     builder.Services.AddScoped<IAiAnalysisService, ClaudeAiService>();
 
+    // Simulation service
+    builder.Services.AddScoped<ISimulationService, SimulationService>();
+
     // WhatsApp service
     builder.Services.AddHttpClient<WhatsAppClient>();
     builder.Services.AddScoped<IWhatsAppService, WhatsAppClient>();

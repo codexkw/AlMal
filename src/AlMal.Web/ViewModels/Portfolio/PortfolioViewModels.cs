@@ -13,8 +13,27 @@ public class PortfolioDashboardViewModel
     public decimal PnL { get; set; }
     public decimal PnLPercent { get; set; }
     public bool IsPublic { get; set; }
-    public List<HoldingViewModel> Holdings { get; set; } = new List<HoldingViewModel>();
-    public List<TradeHistoryViewModel> RecentTrades { get; set; } = new List<TradeHistoryViewModel>();
+    public List<HoldingViewModel> Holdings { get; set; } = new();
+    public List<TradeHistoryViewModel> RecentTrades { get; set; } = new();
+    public List<SectorAllocationViewModel> SectorAllocations { get; set; } = new();
+    public List<PerformancePointViewModel> PerformanceHistory { get; set; } = new();
+}
+
+// ── Sector Allocation ────────────────────────────────────────────
+
+public class SectorAllocationViewModel
+{
+    public string SectorNameAr { get; set; } = null!;
+    public decimal MarketValue { get; set; }
+    public decimal WeightPercent { get; set; }
+}
+
+// ── Performance Point ────────────────────────────────────────────
+
+public class PerformancePointViewModel
+{
+    public string Date { get; set; } = null!;
+    public decimal Value { get; set; }
 }
 
 // ── Holding ──────────────────────────────────────────────────────
