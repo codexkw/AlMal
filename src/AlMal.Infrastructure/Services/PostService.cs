@@ -419,7 +419,7 @@ public partial class PostService : IPostService
                         Content = r.Content,
                         CreatedAt = r.CreatedAt,
                         ParentCommentId = r.ParentCommentId,
-                        Replies = []
+                        Replies = new List<CommentDto>()
                     })
                     .ToList()
             })
