@@ -443,6 +443,11 @@
 - [✅] Implement public/private portfolio toggle (2026-03-02)
 - [✅] Refactor controllers to use SimulationService (clean architecture) (2026-03-03)
 - [✅] Add sector allocations API endpoint (GET /api/v1/portfolio/sectors) (2026-03-03)
+- [✅] Fix dead code in GetPerformanceHistoryAsync (unused first loop removed) (2026-03-03)
+- [✅] Fix GetPerformance API double-load (single query instead of two) (2026-03-03)
+- [✅] Add Portfolio link to desktop navbar (2026-03-03)
+- [✅] Add Portfolio to mobile bottom navigation (2026-03-03)
+- [✅] Add portfolio tab to user profile page (public/own portfolios) (2026-03-03)
 - [ ] Verify: Full buy/sell cycle works with correct P&L (needs dotnet build)
 
 ### 5.5 Academy & Portfolio API Endpoints
@@ -623,16 +628,16 @@
 | Phase | Tasks | Completed | Remaining |
 |-------|-------|-----------|-----------|
 | Phase 1: Foundation | 132 | 132 | 0 |
-| Phase 2: Market Core | 76 | 31 | 45 |
-| Phase 3: News & AI | 43 | 0 | 43 |
-| Phase 4: Community | 39 | 0 | 39 |
-| Phase 5: Academy & Simulation | 44 | 0 | 44 |
-| Phase 6: WhatsApp, CI/CD & Polish | 55 | 0 | 55 |
+| Phase 2: Market Core | 76 | 67 | 9 |
+| Phase 3: News & AI | 43 | 37 | 6 |
+| Phase 4: Community | 39 | 34 | 5 |
+| Phase 5: Academy & Simulation | 49 | 45 | 4 |
+| Phase 6: WhatsApp, CI/CD & Polish | 55 | 49 | 6 |
 | Phase 7: Flutter Mobile | 44 | 0 | 44 |
-| **TOTAL** | **433** | **163** | **270** |
+| **TOTAL** | **438** | **364** | **74** |
 
 > *Update this summary table after completing each phase section.*
 
 ---
 
-*Last updated: 2026-03-03 — Phase 5 simulation feature reviewed & refactored with proper service layer, charts*
+*Last updated: 2026-03-03 — Simulation fixes: dead code removal, API optimization, navbar/profile portfolio integration*
