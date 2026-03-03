@@ -12,9 +12,16 @@ public class Post : BaseEntity
     public int RepostCount { get; set; }
     public bool IsDeleted { get; set; }
     public bool IsFlagged { get; set; }
+    public string? ReportReason { get; set; }
+    public string? ReportedByUserId { get; set; }
+
+    // Repost support
+    public long? OriginalPostId { get; set; }
 
     // Navigation
     public ApplicationUser User { get; set; } = null!;
+    public Post? OriginalPost { get; set; }
+    public ICollection<Post> Reposts { get; set; } = new List<Post>();
     public ICollection<PostStockMention> PostStockMentions { get; set; } = new List<PostStockMention>();
     public ICollection<Comment> Comments { get; set; } = new List<Comment>();
     public ICollection<PostLike> PostLikes { get; set; } = new List<PostLike>();

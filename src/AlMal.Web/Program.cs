@@ -119,6 +119,9 @@ try
     // Simulation service
     builder.Services.AddScoped<ISimulationService, SimulationService>();
 
+    // Post service
+    builder.Services.AddScoped<IPostService, PostService>();
+
     // WhatsApp service
     builder.Services.AddHttpClient<WhatsAppClient>();
     builder.Services.AddScoped<IWhatsAppService, WhatsAppClient>();

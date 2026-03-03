@@ -1,0 +1,178 @@
+@model AlMal.Admin.ViewModels.ModerationItemViewModel
+@using AlMal.Domain.Enums
+@{
+    ViewData["Title"] = "مراجعة المنشور المبلّغ عنه";
+    var comments = ViewBag.Comments as IEnumerable<dynamic> ?? Enumerable.Empty<dynamic>();
+    var stockMentions = ViewBag.StockMentions as IEnumerable<dynamic> ?? Enumerable.Empty<dynamic>();
+}
+
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <h5 class="fw-bold mb-0">
+        <i class="bi bi-shield-exclamation me-1"></i>مراجعة المنشور #@Model.Id
+    </h5>
+    <a asp-action="Index" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-right me-1"></i>العودة للقائمة
+    </a>
+</div>
+
+<div class="row g-4">
+    @* Main Content Column *@
+    <div class="col-md-8">
+        @* Post Content Card *@
+        <div class="card mb-3">
+            <div class="card-header d-flex align-items-center justify-content-between">
+                <span class="fw-bold">محتوى المنشور</span>
+                <span class="badge bg-warning text-dark">مبلّغ عنه</span>
+            </div>
+            <div class="card-body">
+                @* Author info *@
+                <div class="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center"
+                         style="width: 40px; height: 40px; background-color: var(--clr-primary, #4F0E5E); color: #fff; font-weight: 700; font-size: 0.8rem;">
+                        @(Model.UserDisplayName.Length >= 2 ? Model.UserDisplayName[..2] : Model.UserDisplayName)
+                    </div>
+                    <div>
+                        <div class="fw-bold">@Model.UserDisplayName</div>
+                        <div class="text-muted small">
+                            @switch (Model.UserType)
+                            {
+                                case UserType.ProAnalyst:
+                                    <span class="badge bg-info text-dark">محلل محترف</span>
+                                    break;
+                                case UserType.CertifiedAnalyst:
+                                    <span class="badge bg-primary">محلل معتمد</span>
+                                    break;
+                                default:
+                                    <span class="badge bg-secondary">عادي</span>
+                                    break;
+                            }
+                            <span class="ms-2">@Model.CreatedAt.ToString("yyyy-MM-dd HH:mm")</span>
+                        </div>
+                    </div>
+                </div>
+
+                @* Full post content *@
+                <div style="white-space: pre-wrap; word-break: break-word; line-height: 1.8; font-size: 1rem;">
+                    @Model.Content
+                </div>
+
+                @* Stock mentions *@
+                @if (stockMentions.Any())
+                {
+                    <div class="mt-3 d-flex flex-wrap gap-1">
+                        @foreach (var mention in stockMentions)
+                        {
+                            <span class="badge bg-primary bg-opacity-10" style="color: var(--clr-accent, #FC4A04);">
+                                $@mention.Symbol @mention.NameAr
+                            </span>
+                        }
+                    </div>
+                }
+
+                @* Image *@
+                @if (!string.IsNullOrWhiteSpace(Model.ImageUrl))
+                {
+                    <div class="mt-3">
+                        <h6 class="text-muted small mb-2">صورة مرفقة</h6>
+                        <div class="rounded overflow-hidden border" style="max-width: 500px;">
+                            <img src="@Model.ImageUrl" alt="صورة المنشور" class="img-fluid" />
+                        </div>
+                    </div>
+                }
+
+                @* Video *@
+                @if (!string.IsNullOrWhiteSpace(Model.VideoUrl))
+                {
+                    <div class="mt-3">
+                        <h6 class="text-muted small mb-2">فيديو مرفق</h6>
+                        <div class="rounded overflow-hidden border" style="max-width: 500px;">
+                            <video src="@Model.VideoUrl" controls class="w-100" style="max-height: 350px;">
+                                متصفحك لا يدعم عرض الفيديو.
+                            </video>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+
+        @* Comments on this post *@
+        @if (comments.Any())
+        {
+            <div class="card">
+                <div class="card-header fw-bold">
+                    <i class="bi bi-chat-dots me-1"></i>التعليقات (@Model.CommentCount)
+                </div>
+                <div class="card-body p-0">
+                    <ul class="list-group list-group-flush">
+                        @foreach (var comment in comments)
+                        {
+                            <li class="list-group-item">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <strong class="small">@comment.UserDisplayName</strong>
+                                        <div class="small mt-1">@comment.Content</div>
+                                    </div>
+                                    <span class="text-muted small">@((DateTime)comment.CreatedAt).ToString("HH:mm MM/dd")</span>
+                                </div>
+                            </li>
+                        }
+                    </ul>
+                </div>
+            </div>
+        }
+    </div>
+
+    @* Sidebar *@
+    <div class="col-md-4">
+        @* Report Info *@
+        <div class="card mb-3">
+            <div class="card-header fw-bold">
+                <i class="bi bi-flag me-1"></i>تفاصيل البلاغ
+            </div>
+            <div class="card-body">
+                <table class="table table-sm table-borderless mb-0">
+                    <tr>
+                        <td class="text-muted">مبلّغ بواسطة</td>
+                        <td class="fw-bold">@(Model.ReportedByDisplayName ?? "غير معروف")</td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">سبب البلاغ</td>
+                        <td>@(Model.ReportReason ?? "لم يتم تحديد سبب")</td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">الإعجابات</td>
+                        <td>@Model.LikeCount</td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">التعليقات</td>
+                        <td>@Model.CommentCount</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        @* Actions *@
+        <div class="card">
+            <div class="card-header fw-bold">
+                <i class="bi bi-gear me-1"></i>إجراءات
+            </div>
+            <div class="card-body d-grid gap-2">
+                <form asp-action="Approve" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="postId" value="@Model.Id" />
+                    <button type="submit" class="btn btn-success w-100">
+                        <i class="bi bi-check-lg me-1"></i>موافقة (إزالة البلاغ)
+                    </button>
+                </form>
+                <form asp-action="Delete" method="post"
+                      onsubmit="return confirm('هل أنت متأكد من حذف هذا المنشور نهائياً؟');">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="postId" value="@Model.Id" />
+                    <button type="submit" class="btn btn-danger w-100">
+                        <i class="bi bi-trash me-1"></i>حذف المنشور
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

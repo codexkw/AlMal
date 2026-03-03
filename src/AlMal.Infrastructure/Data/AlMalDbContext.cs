@@ -43,6 +43,9 @@ public class AlMalDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<AlertHistory> AlertHistories => Set<AlertHistory>();
     public DbSet<Notification> Notifications => Set<Notification>();
 
+    // Badge Requests
+    public DbSet<BadgeRequest> BadgeRequests => Set<BadgeRequest>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

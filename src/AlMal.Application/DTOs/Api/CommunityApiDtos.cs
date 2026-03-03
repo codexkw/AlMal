@@ -16,6 +16,11 @@ public class PostDto
     public bool IsLikedByCurrentUser { get; set; }
     public DateTime CreatedAt { get; set; }
     public List<string> StockMentions { get; set; } = [];
+
+    // Repost fields
+    public bool IsRepost { get; set; }
+    public long? OriginalPostId { get; set; }
+    public PostDto? OriginalPost { get; set; }
 }
 
 public class CommentDto
@@ -48,10 +53,22 @@ public class UserProfileDto
 public class CreatePostDto
 {
     public string Content { get; set; } = null!;
+    public List<string>? StockMentions { get; set; }
+}
+
+public class RepostDto
+{
+    public long OriginalPostId { get; set; }
+    public string? Comment { get; set; }
 }
 
 public class CreateCommentDto
 {
     public string Content { get; set; } = null!;
     public long? ParentCommentId { get; set; }
+}
+
+public class ReportPostDto
+{
+    public string? Reason { get; set; }
 }

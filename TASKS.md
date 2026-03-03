@@ -350,9 +350,9 @@
 ### 4.2 Post System
 
 - [✅] Create `CommunityController` in Web (2026-03-02)
-- [ ] Create `PostService` in Application
+- [✅] Create `PostService` in Application (2026-03-03)
 - [✅] Build post creation form (text, stock tags with $ autocomplete, media upload) (2026-03-02)
-- [ ] Build media upload (image max 5MB, video max 50MB)
+- [✅] Build media upload (image max 5MB, video max 50MB) (2026-03-03)
 - [✅] Implement stock tag parsing ($SYMBOL → PostStockMention) (2026-03-02)
 - [✅] Build post card component (avatar, badge, content, stock pills, media, actions) (2026-03-02)
 - [✅] Build community feed page (General + Following tabs) (2026-03-02)
@@ -365,7 +365,7 @@
 - [✅] Implement like/unlike toggle (updates denormalized count) (2026-03-02)
 - [✅] Build comment system (threaded one level via ParentCommentId) (2026-03-02)
 - [✅] Build comment creation form (2026-03-02)
-- [ ] Implement repost functionality
+- [✅] Implement repost functionality (2026-03-03)
 - [✅] Implement report post (flag for moderation) (2026-03-02)
 - [✅] Build post actions bar (like, comment, repost, share) (2026-03-02)
 - [✅] Verify: All interactions work and counts update (2026-03-02)
@@ -387,10 +387,10 @@
 
 - [✅] Create `AdminContentController` in Admin (2026-03-02)
 - [✅] Build moderation queue (flagged/reported posts) (2026-03-02)
-- [ ] Build reported content review page
+- [✅] Build reported content review page (2026-03-03)
 - [✅] Implement bulk approve/delete (2026-03-02)
 - [✅] Build user management (search, suspend, ban, promote) (2026-03-02)
-- [ ] Implement analyst badge approval workflow
+- [✅] Implement analyst badge approval workflow (2026-03-03)
 - [✅] Verify: Moderators can review and act on flagged content (2026-03-02)
 
 ---
@@ -630,14 +630,14 @@
 | Phase 1: Foundation | 132 | 132 | 0 |
 | Phase 2: Market Core | 76 | 67 | 9 |
 | Phase 3: News & AI | 43 | 37 | 6 |
-| Phase 4: Community | 39 | 34 | 5 |
+| Phase 4: Community | 39 | 39 | 0 |
 | Phase 5: Academy & Simulation | 49 | 45 | 4 |
 | Phase 6: WhatsApp, CI/CD & Polish | 55 | 49 | 6 |
 | Phase 7: Flutter Mobile | 44 | 0 | 44 |
-| **TOTAL** | **438** | **364** | **74** |
+| **TOTAL** | **438** | **369** | **69** |
 
 > *Update this summary table after completing each phase section.*
 
 ---
 
-*Last updated: 2026-03-03 — Simulation fixes: dead code removal, API optimization, navbar/profile portfolio integration*
+*Last updated: 2026-03-03 — Community: PostService, media upload, repost, reported content review, badge approval workflow*

@@ -363,4 +363,46 @@ public class ProfileController : Controller
 
         return View("Followers", viewModel);
     }
+
+    /// <summary>
+    /// POST /Profile/RequestBadge — Submit a badge upgrade request
+    /// </summary>
+    [HttpPost]
+    [Authorize]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> RequestBadge(
+        [FromForm] Domain.Enums.UserType requestedType,
+        [FromForm] string? justification)
+    {
+        var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (currentUserId == null)
+            return Json(new { success = false, error = "يجب تسجيل الدخول أولاً." });
+
+        // Only allow requesting ProAnalyst or CertifiedAnalyst
+        if (requestedType != Domain.Enums.UserType.ProAnalyst &&
+            requestedType != Domain.Enums.UserType.CertifiedAnalyst)
+            return Json(new { success = false, error = "نوع الشارة غير صالح." });
+
+        // Check for existing pending request
+        var hasPending = await _context.Set<BadgeRequest>()
+            .AsNoTracking()
+            .AnyAsync(br => br.UserId == currentUserId &&
+                            br.Status == Domain.Enums.BadgeRequestStatus.Pending);
+
+        if (hasPending)
+            return Json(new { success = false, error = "لديك طلب شارة قيد المراجعة بالفعل." });
+
+        var badgeRequest = new BadgeRequest
+        {
+            UserId = currentUserId,
+            RequestedType = requestedType,
+            Justification = justification?.Trim(),
+            RequestedAt = DateTime.UtcNow
+        };
+
+        _context.Set<BadgeRequest>().Add(badgeRequest);
+        await _context.SaveChangesAsync();
+
+        return Json(new { success = true, message = "تم إرسال طلب الشارة بنجاح. سيتم مراجعته من قبل الإدارة." });
+    }
 }
