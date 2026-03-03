@@ -3,11 +3,13 @@ using AlMal.Domain.Entities;
 using AlMal.Application.Interfaces;
 using AlMal.Infrastructure.Data;
 using AlMal.Infrastructure.Identity;
+using AlMal.Infrastructure.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.AspNetCore.HttpOverrides;
+using QuestPDF.Infrastructure;
 using Serilog;
 
 Log.Logger = new LoggerConfiguration()
@@ -85,6 +87,14 @@ try
     {
         builder.Services.AddDistributedMemoryCache();
     }
+
+    // Academy & Simulation services
+    builder.Services.AddScoped<ICourseService, CourseService>();
+    builder.Services.AddScoped<IQuizService, QuizService>();
+    builder.Services.AddScoped<ICertificateService, CertificateService>();
+
+    // QuestPDF license
+    QuestPDF.Settings.License = LicenseType.Community;
 
     // Services
     builder.Services.AddScoped<ITokenService, TokenService>();

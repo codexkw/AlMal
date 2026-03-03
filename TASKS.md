@@ -400,7 +400,7 @@
 ### 5.1 Academy: Course System
 
 - [✅] Create `AcademyController` in Web (2026-03-02)
-- [ ] Create `CourseService` in Application
+- [✅] Create `CourseService` in Infrastructure (2026-03-02)
 - [✅] Build course catalog page (grid, filters, sort) (2026-03-02)
 - [✅] Build course detail page (header, description, lesson list, enroll button) (2026-03-02)
 - [✅] Build lesson viewer page (video player, content, nav) (2026-03-02)
@@ -410,7 +410,7 @@
 
 ### 5.2 Academy: Quiz System
 
-- [ ] Create `QuizService` in Application
+- [✅] Create `QuizService` in Infrastructure (2026-03-02)
 - [✅] Build quiz UI (multiple choice, immediate feedback) (2026-03-02)
 - [✅] Implement scoring and pass/fail logic (70% default) (2026-03-02)
 - [✅] Mark lesson complete on quiz pass (2026-03-02)
@@ -419,8 +419,8 @@
 
 ### 5.3 Academy: Certificates
 
-- [ ] Create `CertificateService` in Application
-- [ ] Implement PDF certificate generation (user name, course, date, cert number)
+- [✅] Create `CertificateService` in Infrastructure (2026-03-02)
+- [✅] Implement PDF certificate generation with QuestPDF (user name, course, date, cert number) (2026-03-02)
 - [✅] Auto-generate certificate when all lessons + quizzes passed (2026-03-02)
 - [✅] Implement ProAnalyst upgrade on specific course completion (2026-03-02)
 - [✅] Build certificate download page (2026-03-02)
